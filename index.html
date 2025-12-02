@@ -145,16 +145,6 @@
         .band-60-80 { background: #f97316; height: 20%; bottom: 60%; }
         .band-80-100 { background: #ef4444; height: 20%; bottom: 80%; }
         
-        .accumulation-zone {
-            border: 2px solid #22c55e;
-            box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
-        }
-        
-        .profit-zone {
-            border: 2px solid #ef4444;
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
-        }
-        
         .rsi-indicator {
             width: 40px;
             height: 4px;
@@ -174,6 +164,11 @@
         .rsi-oversold { background: #22c55e; }
         .rsi-neutral { background: #f59e0b; }
         .rsi-overbought { background: #ef4444; }
+        
+        /* Box de Variação */
+        .var-box {
+            @apply flex flex-col items-center justify-center p-1 rounded bg-dark-800/50 backdrop-blur-sm border border-gray-800;
+        }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white">
@@ -186,7 +181,7 @@
                         <i class="fa-solid fa-chart-line text-white text-sm sm:text-lg"></i>
                     </div>
                     <div>
-                        <h1 class="font-bold text-base sm:text-xl text-white tracking-tight">CryptoPanel<span class="text-holder-accumulation">HOLDER</span> <span class="text-[8px] sm:text-[10px] text-gray-500 border border-gray-700 rounded px-1 ml-1 align-top">v3.0 HOLDER PRO</span></h1>
+                        <h1 class="font-bold text-base sm:text-xl text-white tracking-tight">CryptoPanel<span class="text-holder-accumulation">HOLDER</span> <span class="text-[8px] sm:text-[10px] text-gray-500 border border-gray-700 rounded px-1 ml-1 align-top">v3.1 HOLDER PRO</span></h1>
                         <div class="flex items-center gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-gray-400 font-mono mt-0 sm:mt-1">
                             <span class="hidden sm:inline">LONG TERM • ACCUMULATION • PATIENCE</span>
                             <span class="w-1 h-1 rounded-full bg-gray-600 hidden sm:inline"></span>
@@ -215,7 +210,6 @@
         </div>
     </header>
 
-    <!-- Barra de Status Holder -->
     <div class="bg-dark-900 border-b border-gray-800 py-2 shadow-inner">
         <div class="max-w-[1800px] mx-auto px-2 sm:px-4 flex flex-col sm:flex-row gap-2 sm:gap-4 overflow-x-auto no-scrollbar items-start sm:items-center">
             <span class="font-bold text-gray-500 uppercase tracking-widest text-[9px] sm:text-[10px] shrink-0 flex items-center cursor-help" data-tip="holder_intro">Estratégia HOLDER:</span>
@@ -230,7 +224,6 @@
 
     <main class="flex-1 max-w-[1800px] mx-auto px-2 sm:px-4 py-4 sm:py-6 w-full gap-4 sm:gap-8 flex flex-col">
         
-        <!-- Painel de Status do Mercado (Holder) -->
         <section class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             <div class="glass rounded-xl overflow-hidden border border-gray-800 flex flex-col border-t-4 border-t-holder-accumulation shadow-lg">
                 <div class="bg-dark-800/90 p-3 border-b border-gray-700 flex justify-between items-center shrink-0">
@@ -287,7 +280,6 @@
             </div>
         </section>
 
-        <!-- Portfólio Holder Recomendado -->
         <section class="glass rounded-xl overflow-hidden border border-gray-800 flex flex-col h-[400px] shadow-xl">
             <div class="bg-dark-800/80 p-4 border-b border-gray-700 flex justify-between items-center shrink-0">
                 <h3 class="text-white font-bold text-sm flex items-center gap-2" data-tip="portfolio_title"><i class="fa-solid fa-star text-yellow-500"></i> Portfólio Holder Recomendado</h3>
@@ -319,7 +311,6 @@
             </div>
         </section>
 
-        <!-- Alertas HOLDER (reposicionado e modificado) -->
         <section id="alerts-panel" class="glass rounded-xl overflow-hidden border border-holder-dca_zone flex flex-col shadow-lg dca-zone-indicator">
             <div class="bg-purple-900/20 p-4 border-b border-holder-dca_zone/50 flex justify-between items-center">
                 <h3 class="text-holder-dca_zone font-bold text-sm flex items-center gap-2" data-tip="holder_alerts"><i class="fa-solid fa-calendar-check"></i> Alertas de Acumulação (DCA)</h3>
@@ -339,13 +330,11 @@
             <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider hidden sm:block">Monitoramento de Longo Prazo</div>
         </div>
         
-        <!-- Cards de Análise HOLDER -->
         <div id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6 pb-10 card-grid"></div>
     </main>
 
     <div id="metric-tooltip-overlay" class="tooltip-hidden"></div>
 
-    <!-- Modal de Alertas HOLDER -->
     <div id="alertsModal" class="fixed inset-0 z-[120] hidden modal-overlay flex items-center justify-center p-4">
         <div class="bg-dark-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-md sm:max-w-2xl overflow-hidden mx-2">
             <div class="bg-dark-800 p-4 border-b border-gray-700 flex justify-between items-center">
@@ -394,7 +383,6 @@
         </div>
     </div>
 
-    <!-- Modal de Configurações HOLDER -->
     <div id="settingsModal" class="fixed inset-0 z-[120] hidden modal-overlay flex items-center justify-center p-4">
         <div class="bg-dark-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-md sm:max-w-2xl overflow-hidden mx-2">
             <div class="bg-dark-800 p-4 border-b border-gray-700 flex justify-between items-center">
@@ -420,8 +408,7 @@
                 
                 <div class="text-white mb-2">Gerenciar Ativos:</div>
                 <div id="settings-tokens-list" class="flex flex-wrap gap-2 mt-2 mb-4">
-                    <!-- Ativos serão renderizados aqui -->
-                </div>
+                    </div>
                 
                 <div class="text-white mb-2">Adicionar Ativos em Lote (apelido:SYMBOL):</div>
                 <textarea id="batch-tokens" class="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-holder-accumulation outline-none" rows="4" placeholder="Exemplo:&#10;Bitcoin:BTC&#10;Ethereum:ETH&#10;Cardano:ADA"></textarea>
@@ -436,7 +423,6 @@
         </div>
     </div>
     
-    <!-- Modal de Exportação -->
     <div id="export-modal" class="fixed inset-0 z-[120] hidden modal-overlay flex items-center justify-center p-4">
         <div class="bg-dark-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-md overflow-hidden mx-2">
             <div class="bg-dark-800 p-4 border-b border-gray-700 flex justify-between items-center">
@@ -450,7 +436,6 @@
         </div>
     </div>
 
-    <!-- Template do Card HOLDER -->
     <template id="card-template">
         <div class="card glass rounded-xl overflow-hidden hover:border-gray-500 transition-all duration-300 card-enter flex flex-col group shadow-lg holder-phase-holding" data-symbol="">
             <button class="btn-remove absolute top-2 right-2 text-gray-600 hover:text-red-500 z-20 opacity-0 group-hover:opacity-100 p-2 transition-opacity bg-dark-900/80 rounded-full backdrop-blur-sm" title="Remover"><i class="fa-solid fa-times"></i></button>
@@ -469,23 +454,40 @@
                     </div>
                     <div class="text-right">
                         <div class="text-xl font-mono font-bold text-white price-display cursor-help" data-tip="m_price">$0.00</div>
-                        <div class="text-xs font-bold percent-display text-gray-500 cursor-help" data-tip="m_change_30d">0.00% (30d)</div>
                     </div>
                 </div>
+                
+                <div class="grid grid-cols-4 gap-2 mb-2 mt-3">
+                    <div class="var-box cursor-help" data-tip="var_1h">
+                        <div class="text-[8px] text-gray-500 uppercase font-bold">1H</div>
+                        <div class="text-[10px] font-bold font-mono val-1h">--</div>
+                    </div>
+                    <div class="var-box cursor-help" data-tip="var_24h">
+                        <div class="text-[8px] text-gray-500 uppercase font-bold">24H</div>
+                        <div class="text-[10px] font-bold font-mono val-24h">--</div>
+                    </div>
+                    <div class="var-box cursor-help" data-tip="var_7d">
+                        <div class="text-[8px] text-gray-500 uppercase font-bold">7D</div>
+                        <div class="text-[10px] font-bold font-mono val-7d">--</div>
+                    </div>
+                    <div class="var-box cursor-help" data-tip="var_30d">
+                        <div class="text-[8px] text-gray-500 uppercase font-bold">30D</div>
+                        <div class="text-[10px] font-bold font-mono val-30d">--</div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-4 gap-1 text-[9px] font-mono text-gray-400 pt-2 border-t border-gray-800/50">
                     <div class="text-center cursor-help" data-tip="m_sma200">SMA200: <span class="metric-sma200 text-white">--</span></div>
                     <div class="text-center cursor-help" data-tip="m_historical">Histórico: <span class="metric-historical text-white">--</span></div>
                     <div class="text-center cursor-help" data-tip="m_risk">Risco: <span class="metric-risk text-white">--</span></div>
                     <div class="text-center cursor-help" data-tip="rsi_weekly">RSI Sem: <span class="metric-rsi-weekly text-white">--</span></div>
                 </div>
-                <!-- Indicador visual de RSI -->
                 <div class="rsi-indicator mt-1">
                     <div class="rsi-fill rsi-neutral" style="width: 50%"></div>
                 </div>
             </div>
 
             <div class="card-body hidden border-t border-gray-800 bg-dark-900 relative z-20 p-4">
-                <!-- Banda Histórica de Preço -->
                 <div class="relative h-8 w-full bg-dark-800 rounded border border-gray-800 mb-4 overflow-hidden">
                     <div class="historical-band band-0-20"></div>
                     <div class="historical-band band-20-40"></div>
@@ -501,7 +503,6 @@
                 <div class="h-40 sm:h-48 w-full bg-black rounded border border-gray-800 chart-container mb-4 cursor-help" data-tip="m_chart"></div>
                 
                 <div class="space-y-4">
-                    <!-- Análise de Valuation -->
                     <div class="bg-dark-950 p-2 rounded border border-gray-800">
                         <h5 class="text-[9px] text-gray-500 uppercase font-bold mb-1 border-b border-gray-800 pb-1">Valuation</h5>
                         <div class="space-y-1 text-[10px] font-mono">
@@ -512,7 +513,6 @@
                         </div>
                     </div>
                     
-                    <!-- Zonas de Preço -->
                     <div class="bg-dark-950 p-2 rounded border border-gray-800">
                         <h5 class="text-[9px] text-gray-500 uppercase font-bold mb-1 border-b border-gray-800 pb-1 cursor-help" data-tip="zones_intro">Zonas de Preço HOLDER</h5>
                         <div class="space-y-1 text-[10px] font-mono">
@@ -524,17 +524,12 @@
                         </div>
                     </div>
                     
-                    <!-- Análise de Momentum HOLDER -->
                     <div class="bg-dark-950 p-2 rounded border border-gray-800">
                         <h5 class="text-[9px] text-gray-500 uppercase font-bold mb-1 border-b border-gray-800 pb-1 cursor-help" data-tip="momentum_holder">Momentum HOLDER</h5>
                         <div class="space-y-1 text-[10px] font-mono">
                             <div class="flex justify-between cursor-help" data-tip="rsi_weekly">
                                 <span class="text-gray-600">RSI Semanal (14):</span>
                                 <span class="rsi-weekly-value text-white">--</span>
-                            </div>
-                            <div class="flex justify-between cursor-help" data-tip="rsi_monthly">
-                                <span class="text-gray-600">RSI Mensal (14):</span>
-                                <span class="rsi-monthly-value text-white">--</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Interpretação:</span>
@@ -543,14 +538,12 @@
                         </div>
                     </div>
                     
-                    <!-- Alertas DCA -->
                     <div class="bg-dark-950 p-2 rounded border border-gray-800">
                         <h5 class="text-[9px] text-gray-500 uppercase font-bold mb-1 border-b border-gray-800 pb-1">Alertas DCA</h5>
                         <div class="alert-list text-[10px] text-gray-300 space-y-1 max-h-20 overflow-y-auto"></div>
                         <button class="w-full bg-holder-dca_zone/30 text-holder-dca_zone text-[9px] border border-holder-dca_zone rounded py-1 mt-1 hover:bg-holder-dca_zone/50 transition-colors" onclick="App.Alerts.openForCard(this)">+ Alerta DCA</button>
                     </div>
                     
-                    <!-- Análise Holder -->
                     <div class="bg-dark-950 p-2 rounded border border-gray-800">
                         <h5 class="text-[9px] text-gray-500 uppercase font-bold mb-1 border-b border-gray-800 pb-1 cursor-help" data-tip="analysis_holder">Análise HOLDER</h5>
                         <div class="analysis-holder-content text-[10px] text-gray-300 space-y-2">
@@ -608,7 +601,7 @@
                 ohlcData: {}, 
                 indicatorsData: {}, 
                 fiboData: {},
-                timeframes: ["1d","1w","1M"], // Incluído timeframe semanal e mensal para RSI
+                timeframes: ["1h", "1d", "1w"], // Adicionado 1h para cálculo de variação, removido 1M
                 portfolioStrategy: 'balanced'
             },
 
@@ -635,6 +628,10 @@
                     tip: "Nunca venda tudo de uma vez. Faça em etapas.",
                     example: "SOL a 80% do máximo histórico"
                 },
+                'var_1h': { title: "Variação 1 Hora", what: "Mudança percentual do preço na última hora.", interp: "Útil para identificar movimentos muito recentes.", tip: "Muito ruído para holder, use apenas como referência.", example: "+0.5%" },
+                'var_24h': { title: "Variação 24 Horas", what: "Mudança percentual do preço nas últimas 24 horas.", interp: "Mostra a tendência do dia.", tip: "Flutuações diárias são normais.", example: "+2.5%" },
+                'var_7d': { title: "Variação 7 Dias", what: "Mudança percentual do preço na última semana.", interp: "Começa a mostrar tendências de curto prazo.", tip: "Importante para ver a saúde da semana.", example: "-5.0%" },
+                'var_30d': { title: "Variação 30 Dias", what: "Mudança percentual do preço no último mês.", interp: "Métrica chave para holders identificarem tendências mensais.", tip: "Tendência mensal positiva é bom sinal.", example: "+15%" },
                 'holder_alerts': { 
                     title: "Alertas de Acumulação (DCA)", 
                     what: "Sistema de alertas específico para estratégia de Dollar Cost Averaging. Configure preços-alvo para acumulação gradual.", 
@@ -763,13 +760,6 @@
                     tip: "Preste mais atenção à posição histórica do que ao preço absoluto.",
                     example: "Preço atual: $45,230.50"
                 },
-                'm_change_30d': { 
-                    title: "Variação 30 Dias", 
-                    what: "Performance do ativo no último mês. Métrica relevante para holders (não 24h).", 
-                    interp: "Alta consistente em 30d pode indicar início de tendência.", 
-                    tip: "Ignore variações diárias. Foque em tendências mensais.",
-                    example: "+12.5% nos últimos 30 dias = tendência positiva"
-                },
                 'rsi_weekly': { 
                     title: "RSI Semanal (14 períodos)", 
                     what: "Indicador de momentum que mede a velocidade e mudança dos movimentos de preço em um período de uma semana. Especialmente relevante para identificar condições de sobrecompra ou sobrevenda em prazos mais longos.", 
@@ -777,16 +767,9 @@
                     tip: "Use o RSI semanal para confirmar zonas de acumulação ou realização de lucros.",
                     example: "RSI semanal de 25 = ativo oversold, boa oportunidade para acumular."
                 },
-                'rsi_monthly': { 
-                    title: "RSI Mensal (14 períodos)", 
-                    what: "Indicador de momentum em base mensal. Mostra a força do preço ao longo de vários ciclos de mercado, filtrando ruídos de prazos mais curtos.", 
-                    interp: "Para holders: RSI mensal abaixo de 30 é raro e indica forte oversold, potencial grande oportunidade. Acima de 70, alerta para possível sobrecompra no longo prazo.", 
-                    tip: "O RSI mensal é um indicador de longo prazo. Movimentos lentos, mas confiáveis.",
-                    example: "RSI mensal de 20 = ativo extremamente oversold, oportunidade rara."
-                },
                 'momentum_holder': { 
                     title: "Momentum para Holders", 
-                    what: "Análise de momentum específica para investidores de longo prazo, focando em RSI semanal e mensal para identificar oportunidades de acumulação e momentos de realização de lucros.", 
+                    what: "Análise de momentum específica para investidores de longo prazo, focando em RSI semanal para identificar oportunidades de acumulação e momentos de realização de lucros.", 
                     interp: "Combine RSI semanal com análise de valuation para tomar decisões mais precisas.", 
                     tip: "RSI semanal abaixo de 30 + desconto histórico >20% = oportunidade excepcional.",
                     example: "RSI semanal 28 + desconto histórico 25% = acumulação agressiva"
@@ -893,7 +876,9 @@
                 loadAllOHLC: async function(symbol) {
                     if (!App.State.ohlcData[symbol]) App.State.ohlcData[symbol] = {};
                     for (let tf of App.State.timeframes) { 
-                        App.State.ohlcData[symbol][tf] = await App.Core.fetchOHLC(symbol, tf, 500); 
+                        // Para 1h, pegamos menos velas para ser mais leve, apenas para calcular variação
+                        const limit = tf === "1h" ? 5 : 500;
+                        App.State.ohlcData[symbol][tf] = await App.Core.fetchOHLC(symbol, tf, limit); 
                     }
                 },
                 
@@ -985,6 +970,15 @@
                     
                     try {
                         switch(period) {
+                            case "1h":
+                                ohlc = App.Core.getOHLC(symbol, "1h");
+                                // Pega o open da vela atual se recente, ou close da anterior
+                                if (ohlc && ohlc.length >= 2) {
+                                    pastPrice = ohlc[ohlc.length - 2].close;
+                                } else if (ohlc && ohlc.length === 1) {
+                                    pastPrice = ohlc[0].open;
+                                }
+                                break;
                             case "7d":
                                 ohlc = App.Core.getOHLC(symbol, "1d");
                                 if (ohlc && ohlc.length >= 7) {
@@ -1011,21 +1005,13 @@
                         }
                         
                         if (!pastPrice || pastPrice === 0) {
-                            console.warn(`Preço passado inválido para ${symbol} ${period}`);
                             return 0;
                         }
                         
                         const change = ((currentPrice - pastPrice) / pastPrice) * 100;
-                        
-                        if (Math.abs(change) > 500) {
-                            console.warn(`Variação extrema detectada para ${symbol} ${period}: ${change}%`);
-                            return 0;
-                        }
-                        
                         return change;
                         
                     } catch (error) {
-                        console.error(`Erro em calculatePriceChange para ${symbol} ${period}:`, error);
                         return 0;
                     }
                 }
@@ -1168,17 +1154,10 @@
                         else if (sma200Dist > 30) score -= 7.5;
                     }
                     
-                    // 4. RSI Semanal (10% do score)
+                    // 4. RSI Semanal (15% do score)
                     if (ind.rsiWeekly) {
-                        if (ind.rsiWeekly < 30) score += 10;
-                        else if (ind.rsiWeekly <= 70) score += 5;
-                        // Se >70, não adiciona
-                    }
-                    
-                    // 5. RSI Mensal (5% do score)
-                    if (ind.rsiMonthly) {
-                        if (ind.rsiMonthly < 30) score += 5;
-                        else if (ind.rsiMonthly <= 70) score += 2.5;
+                        if (ind.rsiWeekly < 30) score += 15;
+                        else if (ind.rsiWeekly <= 70) score += 7.5;
                     }
                     
                     // Ajustar para 0-100
@@ -1200,7 +1179,9 @@
                     // Preço atual
                     ind.currentPrice = currentPrice;
                     
-                    // Variações de preço (longo prazo apenas)
+                    // Variações de preço (Calculadas independentemente do TF atual)
+                    // Apenas atualizamos se estivermos no contexto correto ou se for necessário
+                    ind.ch1h = App.Core.calculatePriceChange(symbol, "1h");
                     ind.ch7d = App.Core.calculatePriceChange(symbol, "7d");
                     ind.ch30d = App.Core.calculatePriceChange(symbol, "30d");
                     ind.ch90d = App.Core.calculatePriceChange(symbol, "90d");
@@ -1208,21 +1189,20 @@
                     // Médias móveis importantes para holders
                     ind.sma200 = App.Indicators.calculateSMA(closes, 200);
                     ind.ema200 = App.Indicators.calculateEMA(closes, 200);
-                    ind.sma50 = App.Indicators.calculateSMA(closes, 50);
                     
-                    // RSI específico para holders (semanal e mensal)
+                    // RSI específico para holders
                     if (tf === "1w") {
                         ind.rsiWeekly = App.Indicators.calculateRSI(closes, 14);
                     }
-                    if (tf === "1M") {
-                        ind.rsiMonthly = App.Indicators.calculateRSI(closes, 14);
-                    }
                     
-                    // Análise histórica
+                    // Análise histórica (apenas se tiver dados 1d carregados)
                     const historical = App.State.historicalData[symbol.toUpperCase()];
-                    if (historical) {
-                        ind.historicalPercentile = App.Indicators.calculateHistoricalPercentile(currentPrice, closes);
-                        ind.priceZones = App.Indicators.calculatePriceZones(closes);
+                    const ohlc1d = App.Core.getOHLC(symbol, "1d");
+                    
+                    if (historical && ohlc1d.length > 0) {
+                        const closes1d = ohlc1d.map(c => c.close);
+                        ind.historicalPercentile = App.Indicators.calculateHistoricalPercentile(currentPrice, closes1d);
+                        ind.priceZones = App.Indicators.calculatePriceZones(closes1d);
                     }
                     
                     // Calcular fase holder
@@ -1234,7 +1214,7 @@
                     // Volatilidade
                     ind.volatility = App.Indicators.calculateHistoricalVolatility(closes, 30);
                     
-                    // Classificação de risco baseada em volatilidade e capitalização
+                    // Classificação de risco baseada em volatilidade
                     if (ind.volatility < 0.7) ind.riskLevel = 'low';
                     else if (ind.volatility < 1.2) ind.riskLevel = 'moderate';
                     else ind.riskLevel = 'high';
@@ -1487,21 +1467,38 @@
                     });
                 },
                 
+                formatColor: (val) => val > 0 ? 'text-green-400' : val < 0 ? 'text-red-400' : 'text-gray-400',
+                
                 updateTokenCard: (symbol) => {
                     const card = document.querySelector(`.card[data-symbol="${symbol}"]`);
                     if(!card) return;
                     
                     const s = symbol.toLowerCase();
                     const m = App.State.marketData[s];
-                    const i = App.State.indicatorsData[s]?.["1d"];
+                    const i = App.State.indicatorsData[s]?.["1d"]; // Usa dados diários como base
                     const historical = App.State.historicalData[symbol.toUpperCase()];
                     const token = App.State.tokens.find(t => t.symbol === symbol);
                     
                     if(m) {
                         card.querySelector('.price-display').innerText = '$'+m.lastPrice.toFixed(2);
                         card.querySelector('.price-display').dataset.v = m.lastPrice;
-                        card.querySelector('.percent-display').innerText = (m.priceChangePercent>0?'+':'')+m.priceChangePercent.toFixed(2)+'% (30d)';
-                        card.querySelector('.percent-display').className = `text-xs font-bold percent-display ${m.priceChangePercent>0?'text-green-400':'text-red-400'}`;
+                        
+                        // Atualizar variações no grid (1h, 24h, 7d, 30d)
+                        const ch1h = App.State.indicatorsData[s]?.["1h"]?.ch1h || App.Core.calculatePriceChange(symbol, "1h") || 0;
+                        const ch24h = m.priceChangePercent;
+                        const ch7d = i?.ch7d || 0;
+                        const ch30d = i?.ch30d || 0;
+
+                        const updateVar = (sel, val) => {
+                            const el = card.querySelector(sel);
+                            el.innerText = (val > 0 ? '+' : '') + val.toFixed(2) + '%';
+                            el.className = `text-[10px] font-bold font-mono ${App.UI.formatColor(val)}`;
+                        };
+
+                        updateVar('.val-1h', ch1h);
+                        updateVar('.val-24h', ch24h);
+                        updateVar('.val-7d', ch7d);
+                        updateVar('.val-30d', ch30d);
                     }
                     
                     if(i) {
@@ -1586,22 +1583,13 @@
                             card.querySelector('.zone-full').innerText = `$${i.priceZones.zone5.toFixed(2)}`;
                         }
                         
-                        // Atualizar análise de momentum (RSI)
+                        // Atualizar análise de momentum (RSI Semanal)
                         const rsiWeeklyValue = App.State.indicatorsData[s]?.["1w"]?.rsiWeekly;
-                        const rsiMonthlyValue = App.State.indicatorsData[s]?.["1M"]?.rsiWeekly; // Usando rsiWeekly do timeframe mensal
                         
                         if (rsiWeeklyValue) {
                             card.querySelector('.rsi-weekly-value').innerText = rsiWeeklyValue.toFixed(2);
                             card.querySelector('.rsi-weekly-value').className = `rsi-weekly-value ${rsiWeeklyValue < 30 ? 'text-rsi-oversold' : rsiWeeklyValue > 70 ? 'text-rsi-overbought' : 'text-rsi-neutral'}`;
-                        }
-                        
-                        if (rsiMonthlyValue) {
-                            card.querySelector('.rsi-monthly-value').innerText = rsiMonthlyValue.toFixed(2);
-                            card.querySelector('.rsi-monthly-value').className = `rsi-monthly-value ${rsiMonthlyValue < 30 ? 'text-rsi-oversold' : rsiMonthlyValue > 70 ? 'text-rsi-overbought' : 'text-rsi-neutral'}`;
-                        }
-                        
-                        // Atualizar interpretação do RSI
-                        if (rsiWeeklyValue) {
+                            
                             card.querySelector('.rsi-interpretation').innerText = App.Indicators.interpretRSI(rsiWeeklyValue);
                             card.querySelector('.rsi-interpretation').className = `rsi-interpretation ${rsiWeeklyValue < 30 ? 'text-rsi-oversold' : rsiWeeklyValue > 70 ? 'text-rsi-overbought' : 'text-rsi-neutral'}`;
                         }
