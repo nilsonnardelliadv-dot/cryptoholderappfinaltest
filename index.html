@@ -955,7 +955,114 @@
             },
 
             CoinGecko: {
-                // Funções existentes...
+                // Funções auxiliares básicas
+                getMarketCapCategory: (marketCap) => {
+                    if (!marketCap) return 'micro';
+                    if (marketCap >= 10000000000) return 'large'; // $10B+
+                    if (marketCap >= 1000000000) return 'mid'; // $1B-$10B
+                    if (marketCap >= 50000000) return 'small'; // $50M-$1B
+                    return 'micro'; // <$50M
+                },
+                
+                getVolumeCategory: (volume) => {
+                    if (!volume) return 'low';
+                    if (volume >= 100000000) return 'very-high'; // $100M+
+                    if (volume >= 50000000) return 'high'; // $50M-$100M
+                    if (volume >= 10000000) return 'medium'; // $10M-$50M
+                    return 'low'; // <$10M
+                },
+                
+                formatCurrency: (value) => {
+                    if (!value && value !== 0) return '$--';
+                    if (value >= 1000000000) {
+                        return '$' + (value / 1000000000).toFixed(2) + 'B';
+                    }
+                    if (value >= 1000000) {
+                        return '$' + (value / 1000000).toFixed(2) + 'M';
+                    }
+                    if (value >= 1000) {
+                        return '$' + (value / 1000).toFixed(2) + 'K';
+                    }
+                    return '$' + value.toFixed(2);
+                },
+                
+                // Buscar dados globais
+                fetchGlobalData: async () => {
+                    try {
+                        const response = await fetch(`${COINGECKO_API}/global`);
+                        const data = await response.json();
+                        App.State.globalData = data.data;
+                        
+                        // Atualizar UI
+                        document.getElementById('total-marketcap').textContent = 
+                            App.CoinGecko.formatCurrency(App.State.globalData.total_market_cap?.usd || 0);
+                        document.getElementById('total-volume').textContent = 
+                            App.CoinGecko.formatCurrency(App.State.globalData.total_volume?.usd || 0);
+                        document.getElementById('btc-dominance').textContent = 
+                            (App.State.globalData.market_cap_percentage?.btc || 0).toFixed(1) + '%';
+                        document.getElementById('eth-dominance').textContent = 
+                            (App.State.globalData.market_cap_percentage?.eth || 0).toFixed(1) + '%';
+                        
+                        console.log('Dados globais atualizados');
+                    } catch (error) {
+                        console.error('Erro ao buscar dados globais:', error);
+                    }
+                },
+                
+                // Buscar lista de moedas
+                fetchCoinList: async (page = 1) => {
+                    try {
+                        document.getElementById('coingecko-table-body').innerHTML = 
+                            '<tr><td colspan="10" class="p-8 text-center text-gray-600 italic animate-pulse">Carregando dados da CoinGecko...</td></tr>';
+                        
+                        const response = await fetch(
+                            `${COINGECKO_API}/coins/markets?vs_currency=${App.State.currency}&order=market_cap_desc&per_page=${App.State.coinsPerPage}&page=${page}&sparkline=true&price_change_percentage=1h,24h,7d,30d`
+                        );
+                        
+                        const coins = await response.json();
+                        
+                        // Processar cada moeda
+                        for (const coin of coins) {
+                            App.State.coinGeckoData[coin.id] = coin;
+                            
+                            // Calcular holder score
+                            coin.holderScore = await App.CoinGecko.calcHolderScore(coin);
+                            coin.marketCapCategory = App.CoinGecko.getMarketCapCategory(coin.market_cap);
+                            
+                            // Buscar dados técnicos
+                            App.CoinGecko.updateTechnicalData(coin.id);
+                        }
+                        
+                        App.CoinGecko.renderTable();
+                        App.UI.grid();
+                        
+                        document.getElementById('last-update').innerText = new Date().toLocaleTimeString();
+                        console.log(`Dados da página ${page} carregados: ${coins.length} moedas`);
+                    } catch (error) {
+                        console.error('Erro ao buscar lista de moedas:', error);
+                        document.getElementById('coingecko-table-body').innerHTML = 
+                            '<tr><td colspan="10" class="p-8 text-center text-red-500">Erro ao carregar dados. Tente novamente.</td></tr>';
+                    }
+                },
+                
+                // Buscar lista completa
+                fetchFullCoinList: async () => {
+                    try {
+                        const response = await fetch(`${COINGECKO_API}/coins/list`);
+                        App.State.coinList = await response.json();
+                        console.log('Lista completa carregada:', App.State.coinList.length, 'moedas');
+                    } catch (error) {
+                        console.error('Erro ao buscar lista completa:', error);
+                    }
+                },
+                
+                // Abrir detalhes da moeda
+                openCoinDetail: (coinId) => {
+                    const coin = App.State.coinGeckoData[coinId];
+                    if (coin) {
+                        window.open(`https://www.coingecko.com/en/coins/${coinId}`, '_blank');
+                    }
+                },
                 
                 // CALCULAR SCORE HOLDER EVOLUÍDO
                 calcHolderScore: async (coin) => {
@@ -1358,10 +1465,82 @@
                 }
             },
 
+            // TOKEN MANAGEMENT
+            Token: {
+                addFromSearch: () => {
+                    const input = document.getElementById('add-input');
+                    const symbol = input.value.trim().toLowerCase();
+                    
+                    if (!symbol) return;
+                    
+                    // Encontrar o token na lista
+                    const coin = App.State.coinList.find(c => 
+                        c.id.toLowerCase() === symbol || 
+                        c.symbol.toLowerCase() === symbol ||
+                        c.name.toLowerCase().includes(symbol)
+                    );
+                    
+                    if (coin) {
+                        if (!App.State.favoriteTokens.includes(coin.id)) {
+                            App.State.favoriteTokens.push(coin.id);
+                            App.Token.saveFavorites();
+                            App.UI.grid();
+                            
+                            // Buscar dados do token
+                            App.CoinGecko.fetchCoinList(1).then(() => {
+                                App.UI.grid();
+                            });
+                            
+                            input.value = '';
+                            console.log(`Token ${coin.id} adicionado aos favoritos`);
+                        } else {
+                            alert('Este token já está nos favoritos!');
+                        }
+                    } else {
+                        alert('Token não encontrado. Tente usar o ID exato (ex: bitcoin)');
+                    }
+                },
+                
+                toggleFavorite: (coinId) => {
+                    const index = App.State.favoriteTokens.indexOf(coinId);
+                    
+                    if (index === -1) {
+                        // Adicionar
+                        App.State.favoriteTokens.push(coinId);
+                    } else {
+                        // Remover
+                        App.State.favoriteTokens.splice(index, 1);
+                    }
+                    
+                    App.Token.saveFavorites();
+                    App.UI.grid();
+                    App.CoinGecko.renderTable();
+                },
+                
+                rem: (coinId) => {
+                    App.State.favoriteTokens = App.State.favoriteTokens.filter(id => id !== coinId);
+                    App.Token.saveFavorites();
+                    App.UI.grid();
+                },
+                
+                loadFavoritesData: async () => {
+                    // Garantir que dados dos favoritos estejam carregados
+                    for (const coinId of App.State.favoriteTokens) {
+                        if (!App.State.coinGeckoData[coinId]) {
+                            // Buscar dados do token
+                            await App.CoinGecko.updateTechnicalData(coinId);
+                        }
+                    }
+                },
+                
+                saveFavorites: () => {
+                    localStorage.setItem('holder_favorites', JSON.stringify(App.State.favoriteTokens));
+                }
+            },
+
             // UI ATUALIZADA
             UI: {
                 tooltips: () => {
-                    // Implementação existente...
                     const ov = document.getElementById('metric-tooltip-overlay');
                     const show = (t) => {
                         let d = App.Library[t.dataset.tip];
@@ -1465,7 +1644,6 @@
                     asymmetryBadge.title = `Assimetria ${asymmetry.ratio.toFixed(1)}:1 (Upside: ${asymmetry.upside}%, Downside: ${asymmetry.downside}%)`;
                     
                     // Stats
-                    card.querySelector('.metric-rank').textContent = coin.market_cap_rank || '--';
                     card.querySelector('.metric-marketcap').textContent = App.CoinGecko.formatCurrency(coin.market_cap);
                     card.querySelector('.metric-volume').textContent = App.CoinGecko.formatCurrency(coin.total_volume);
                     
@@ -1768,7 +1946,7 @@
                             <div class="flex justify-between">
                                 <span class="text-gray-400">${category.charAt(0).toUpperCase() + category.slice(1)} Cap:</span>
                                 <span class="text-white">${percent.toFixed(1)}%</span>
-                            </div>
+                        </div>
                         `;
                     });
                     
@@ -1863,6 +2041,19 @@
                     modal.classList.remove('hidden');
                 },
                 
+                closeModal: () => {
+                    document.getElementById('alertsModal').classList.add('hidden');
+                },
+                
+                openForCard: (btn) => {
+                    App.Alerts.openModal(btn);
+                },
+                
+                openForCoin: (coinId) => {
+                    App.Alerts.openModal();
+                    document.getElementById('alert-symbol').value = coinId;
+                },
+                
                 createAlert: () => {
                     const coinId = document.getElementById('alert-symbol').value;
                     const type = document.getElementById('alert-type').value;
@@ -1945,6 +2136,100 @@
                     App.Alerts.renderInCard(coinId);
                 },
                 
+                renderAlertsPanel: () => {
+                    const alertsContent = document.getElementById('alertsContent');
+                    if (!alertsContent) return;
+                    
+                    const activeAlerts = App.State.alerts.filter(a => !a.triggered);
+                    
+                    if (activeAlerts.length === 0) {
+                        alertsContent.innerHTML = '<div class="text-gray-500 text-sm italic text-center">Nenhum alerta ativo</div>';
+                        return;
+                    }
+                    
+                    alertsContent.innerHTML = '';
+                    
+                    activeAlerts.forEach(alert => {
+                        const coin = App.State.coinGeckoData[alert.coinId];
+                        if (!coin) return;
+                        
+                        const alertEl = document.createElement('div');
+                        alertEl.className = 'flex justify-between items-center p-2 bg-dark-800/50 rounded border border-gray-700';
+                        
+                        let conditionText = '';
+                        if (alert.conditionType === 'price') {
+                            conditionText = `${alert.type === 'buy' ? 'Compra' : 'Venda'} em $${alert.targetPrice}`;
+                        } else if (alert.conditionType === 'score') {
+                            conditionText = `Score ${alert.scoreCondition === 'above' ? '≥' : '≤'} ${alert.scoreValue}`;
+                        } else if (alert.conditionType === 'asymmetry') {
+                            conditionText = `Assimetria ≥ ${alert.asymmetryValue}`;
+                        } else if (alert.conditionType === 'rsi') {
+                            conditionText = 'RSI extremo';
+                        } else if (alert.conditionType === 'ath_distance') {
+                            conditionText = 'Distância ATH > 50%';
+                        }
+                        
+                        alertEl.innerHTML = `
+                            <div>
+                                <div class="font-bold text-white text-xs">${alert.symbol}</div>
+                                <div class="text-gray-400 text-[10px]">${conditionText}</div>
+                            </div>
+                            <button onclick="App.Alerts.removeAlert(${alert.id})" class="text-red-500 hover:text-red-300 text-xs">
+                                <i class="fa-solid fa-times"></i>
+                            </button>
+                        `;
+                        
+                        alertsContent.appendChild(alertEl);
+                    });
+                },
+                
+                renderInCard: (coinId) => {
+                    const card = document.querySelector(`.card[data-symbol="${coinId}"]`);
+                    if (!card) return;
+                    
+                    const alertList = card.querySelector('.alert-list');
+                    if (!alertList) return;
+                    
+                    const coinAlerts = App.State.alerts.filter(a => a.coinId === coinId && !a.triggered);
+                    
+                    if (coinAlerts.length === 0) {
+                        alertList.innerHTML = '<div class="text-gray-500 text-center">Sem alertas</div>';
+                        return;
+                    }
+                    
+                    alertList.innerHTML = '';
+                    coinAlerts.forEach(alert => {
+                        const alertEl = document.createElement('div');
+                        alertEl.className = 'flex justify-between items-center';
+                        
+                        let conditionText = '';
+                        if (alert.conditionType === 'price') {
+                            conditionText = `$${alert.targetPrice}`;
+                        } else if (alert.conditionType === 'score') {
+                            conditionText = `Score ${alert.scoreCondition === 'above' ? '≥' : '≤'} ${alert.scoreValue}`;
+                        }
+                        
+                        alertEl.innerHTML = `
+                            <span class="truncate">${conditionText}</span>
+                            <button onclick="event.stopPropagation(); App.Alerts.removeAlert(${alert.id})" class="text-red-500 hover:text-red-300">
+                                <i class="fa-solid fa-times text-[8px]"></i>
+                            </button>
+                        `;
+                        alertList.appendChild(alertEl);
+                    });
+                },
+                
+                removeAlert: (id) => {
+                    App.State.alerts = App.State.alerts.filter(a => a.id !== id);
+                    App.Alerts.saveToStorage();
+                    App.Alerts.renderAlertsPanel();
+                    
+                    // Atualizar cards
+                    App.State.favoriteTokens.forEach(coinId => {
+                        App.Alerts.renderInCard(coinId);
+                    });
+                },
+                
                 checkAllAlerts: () => {
                     App.State.favoriteTokens.forEach(coinId => {
                         const coin = App.State.coinGeckoData[coinId];
@@ -2000,7 +2285,50 @@
                     App.Alerts.renderAlertsPanel();
                 },
                 
-                // ... resto das funções de alertas mantidas
+                showNotification: (alert) => {
+                    const coin = App.State.coinGeckoData[alert.coinId];
+                    if (!coin) return;
+                    
+                    // Criar notificação
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed top-4 right-4 bg-orange-900 border border-orange-700 text-white p-4 rounded-lg shadow-lg z-[9999] max-w-sm';
+                    notification.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="font-bold text-orange-300">ALERTA ATIVADO!</div>
+                                <div class="text-sm mt-1">${alert.symbol} - ${coin.name}</div>
+                                <div class="text-xs text-gray-300 mt-2">${alert.notes || 'Alerta ativado'}</div>
+                            </div>
+                            <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-white">
+                                <i class="fa-solid fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(notification);
+                    
+                    // Remover após 5 segundos
+                    setTimeout(() => {
+                        if (notification.parentElement) {
+                            notification.remove();
+                        }
+                    }, 5000);
+                    
+                    // Som de notificação
+                    if (App.State.settings.alertSounds) {
+                        try {
+                            const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3');
+                            audio.volume = 0.3;
+                            audio.play();
+                        } catch (e) {
+                            console.log('Não foi possível tocar o som de notificação');
+                        }
+                    }
+                },
+                
+                saveToStorage: () => {
+                    localStorage.setItem('holder_alerts', JSON.stringify(App.State.alerts));
+                }
             },
 
             // TRADE SIMULATOR ATUALIZADO
@@ -2129,6 +2457,14 @@
 
             // EXPORT ATUALIZADO
             Export: {
+                openModal: () => {
+                    document.getElementById('export-modal').classList.remove('hidden');
+                },
+                
+                closeModal: () => {
+                    document.getElementById('export-modal').classList.add('hidden');
+                },
+                
                 genFavoritesReport: () => {
                     const favoriteCoins = App.State.favoriteTokens
                         .map(id => App.State.coinGeckoData[id])
@@ -2240,6 +2576,21 @@
 
             // SETTINGS ATUALIZADAS
             Settings: {
+                openModal: () => {
+                    document.getElementById('settingsModal').classList.remove('hidden');
+                    
+                    // Carregar configurações atuais
+                    document.getElementById('currency-select').value = App.State.settings.coinGeckoCurrency;
+                    document.getElementById('per-page-select').value = App.State.settings.coinGeckoPerPage;
+                    document.getElementById('auto-refresh-cg').checked = App.State.settings.coinGeckoAutoRefresh;
+                    document.getElementById('refresh-interval').value = App.State.settings.refreshInterval;
+                    document.getElementById('holder-mode').checked = App.State.settings.holderMode;
+                },
+                
+                closeModal: () => {
+                    document.getElementById('settingsModal').classList.add('hidden');
+                },
+                
                 saveCoinGeckoSettings: () => {
                     App.State.settings.coinGeckoCurrency = document.getElementById('currency-select').value;
                     App.State.settings.coinGeckoPerPage = parseInt(document.getElementById('per-page-select').value);
@@ -2348,6 +2699,11 @@
                     await App.CoinGecko.fetchCoinList(1);
                     App.Portfolio.updatePortfolioView();
                     document.getElementById('last-update').innerText = new Date().toLocaleTimeString();
+                });
+                
+                // Configurar botão de abrir configurações
+                document.getElementById('openSettings').addEventListener('click', () => {
+                    App.Settings.openModal();
                 });
                 
                 // Mobile menu toggle
