@@ -27,6 +27,11 @@
                             holding: '#3b82f6', 
                             profit_taking: '#ef4444',
                             dca_zone: '#8b5cf6'
+                        },
+                        rsi: {
+                            oversold: '#22c55e',
+                            neutral: '#f59e0b',
+                            overbought: '#ef4444'
                         }
                     },
                     animation: { 
@@ -149,6 +154,26 @@
             border: 2px solid #ef4444;
             box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
         }
+        
+        .rsi-indicator {
+            width: 40px;
+            height: 4px;
+            border-radius: 2px;
+            background: #374151;
+            position: relative;
+            overflow: hidden;
+            margin: 2px auto;
+        }
+        
+        .rsi-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+        
+        .rsi-oversold { background: #22c55e; }
+        .rsi-neutral { background: #f59e0b; }
+        .rsi-overbought { background: #ef4444; }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white">
@@ -447,10 +472,15 @@
                         <div class="text-xs font-bold percent-display text-gray-500 cursor-help" data-tip="m_change_30d">0.00% (30d)</div>
                     </div>
                 </div>
-                <div class="grid grid-cols-3 gap-1 text-[9px] font-mono text-gray-400 pt-2 border-t border-gray-800/50">
+                <div class="grid grid-cols-4 gap-1 text-[9px] font-mono text-gray-400 pt-2 border-t border-gray-800/50">
                     <div class="text-center cursor-help" data-tip="m_sma200">SMA200: <span class="metric-sma200 text-white">--</span></div>
                     <div class="text-center cursor-help" data-tip="m_historical">Histórico: <span class="metric-historical text-white">--</span></div>
                     <div class="text-center cursor-help" data-tip="m_risk">Risco: <span class="metric-risk text-white">--</span></div>
+                    <div class="text-center cursor-help" data-tip="rsi_weekly">RSI Sem: <span class="metric-rsi-weekly text-white">--</span></div>
+                </div>
+                <!-- Indicador visual de RSI -->
+                <div class="rsi-indicator mt-1">
+                    <div class="rsi-fill rsi-neutral" style="width: 50%"></div>
                 </div>
             </div>
 
@@ -491,6 +521,25 @@
                             <div class="flex justify-between"><span class="text-gray-600">Preço Justo:</span><span class="zone-fair text-blue-400">--</span></div>
                             <div class="flex justify-between"><span class="text-gray-600">Realização Parcial:</span><span class="zone-partial text-yellow-400">--</span></div>
                             <div class="flex justify-between"><span class="text-gray-600">Realização Total:</span><span class="zone-full text-red-400">--</span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Análise de Momentum HOLDER -->
+                    <div class="bg-dark-950 p-2 rounded border border-gray-800">
+                        <h5 class="text-[9px] text-gray-500 uppercase font-bold mb-1 border-b border-gray-800 pb-1 cursor-help" data-tip="momentum_holder">Momentum HOLDER</h5>
+                        <div class="space-y-1 text-[10px] font-mono">
+                            <div class="flex justify-between cursor-help" data-tip="rsi_weekly">
+                                <span class="text-gray-600">RSI Semanal (14):</span>
+                                <span class="rsi-weekly-value text-white">--</span>
+                            </div>
+                            <div class="flex justify-between cursor-help" data-tip="rsi_monthly">
+                                <span class="text-gray-600">RSI Mensal (14):</span>
+                                <span class="rsi-monthly-value text-white">--</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Interpretação:</span>
+                                <span class="rsi-interpretation text-white">--</span>
+                            </div>
                         </div>
                     </div>
                     
@@ -559,7 +608,7 @@
                 ohlcData: {}, 
                 indicatorsData: {}, 
                 fiboData: {},
-                timeframes: ["1d","1w","1M"], // Apenas timeframes longos para holders
+                timeframes: ["1d","1w","1M"], // Incluído timeframe semanal e mensal para RSI
                 portfolioStrategy: 'balanced'
             },
 
@@ -720,6 +769,27 @@
                     interp: "Alta consistente em 30d pode indicar início de tendência.", 
                     tip: "Ignore variações diárias. Foque em tendências mensais.",
                     example: "+12.5% nos últimos 30 dias = tendência positiva"
+                },
+                'rsi_weekly': { 
+                    title: "RSI Semanal (14 períodos)", 
+                    what: "Indicador de momentum que mede a velocidade e mudança dos movimentos de preço em um período de uma semana. Especialmente relevante para identificar condições de sobrecompra ou sobrevenda em prazos mais longos.", 
+                    interp: "Para holders: RSI abaixo de 30 indica possível zona de acumulação (oversold). Acima de 70, pode indicar sobrecompra e oportunidade para realizar lucros.", 
+                    tip: "Use o RSI semanal para confirmar zonas de acumulação ou realização de lucros.",
+                    example: "RSI semanal de 25 = ativo oversold, boa oportunidade para acumular."
+                },
+                'rsi_monthly': { 
+                    title: "RSI Mensal (14 períodos)", 
+                    what: "Indicador de momentum em base mensal. Mostra a força do preço ao longo de vários ciclos de mercado, filtrando ruídos de prazos mais curtos.", 
+                    interp: "Para holders: RSI mensal abaixo de 30 é raro e indica forte oversold, potencial grande oportunidade. Acima de 70, alerta para possível sobrecompra no longo prazo.", 
+                    tip: "O RSI mensal é um indicador de longo prazo. Movimentos lentos, mas confiáveis.",
+                    example: "RSI mensal de 20 = ativo extremamente oversold, oportunidade rara."
+                },
+                'momentum_holder': { 
+                    title: "Momentum para Holders", 
+                    what: "Análise de momentum específica para investidores de longo prazo, focando em RSI semanal e mensal para identificar oportunidades de acumulação e momentos de realização de lucros.", 
+                    interp: "Combine RSI semanal com análise de valuation para tomar decisões mais precisas.", 
+                    tip: "RSI semanal abaixo de 30 + desconto histórico >20% = oportunidade excepcional.",
+                    example: "RSI semanal 28 + desconto histórico 25% = acumulação agressiva"
                 }
             },
 
@@ -1019,6 +1089,35 @@
                     };
                 },
                 
+                // Calcular RSI para qualquer array de closes
+                calculateRSI: (closes, period = 14) => {
+                    if (closes.length < period + 1) return null;
+                    
+                    let gains = [];
+                    let losses = [];
+                    
+                    for (let i = 1; i < closes.length; i++) {
+                        const change = closes[i] - closes[i - 1];
+                        gains.push(change > 0 ? change : 0);
+                        losses.push(change < 0 ? -change : 0);
+                    }
+                    
+                    const avgGain = gains.slice(-period).reduce((a, b) => a + b, 0) / period;
+                    const avgLoss = losses.slice(-period).reduce((a, b) => a + b, 0) / period;
+                    
+                    if (avgLoss === 0) return 100;
+                    const rs = avgGain / avgLoss;
+                    return 100 - (100 / (1 + rs));
+                },
+                
+                // Determinar interpretação do RSI para holders
+                interpretRSI: (rsi) => {
+                    if (!rsi) return 'N/A';
+                    if (rsi < 30) return 'Oversold (Acumular)';
+                    if (rsi > 70) return 'Overbought (Considerar realizar)';
+                    return 'Neutro (Manter)';
+                },
+                
                 // Determinar fase holder baseada em múltiplos fatores
                 determineHolderPhase: (ind, historical) => {
                     if (!ind || !historical) return 'holding';
@@ -1026,17 +1125,18 @@
                     const currentPrice = ind.currentPrice;
                     const percentile = ind.historicalPercentile;
                     const discountFromAvg = historical.avg2y ? ((historical.avg2y - currentPrice) / historical.avg2y) * 100 : 0;
+                    const rsiWeekly = ind.rsiWeekly;
                     
-                    if (percentile < 30 || discountFromAvg > 20) {
+                    if ((percentile < 30 || discountFromAvg > 20) && (rsiWeekly < 35 || !rsiWeekly)) {
                         return 'accumulation';
-                    } else if (percentile > 70) {
+                    } else if (percentile > 70 || (rsiWeekly > 70 && discountFromAvg < -10)) {
                         return 'profit_taking';
                     } else {
                         return 'holding';
                     }
                 },
                 
-                // Calcular score holder 2.0
+                // Calcular score holder 2.0 incluindo RSI
                 calculateHolderScore: (ind, historical) => {
                     let score = 50;
                     
@@ -1060,18 +1160,25 @@
                     else if (percentile > 80) score -= 20;
                     else if (percentile > 65) score -= 10;
                     
-                    // 3. Tendência de longo prazo (20% do score)
+                    // 3. Tendência de longo prazo (15% do score)
                     if (ind.sma200 && ind.currentPrice) {
                         const sma200Dist = ((ind.currentPrice - ind.sma200) / ind.sma200) * 100;
-                        if (sma200Dist < -15) score += 20;
-                        else if (sma200Dist < 0) score += 10;
-                        else if (sma200Dist > 30) score -= 10;
+                        if (sma200Dist < -15) score += 15;
+                        else if (sma200Dist < 0) score += 7.5;
+                        else if (sma200Dist > 30) score -= 7.5;
                     }
                     
-                    // 4. RSI longo prazo (10% do score)
-                    if (ind.rsi) {
-                        if (ind.rsi < 30) score += 10;
-                        else if (ind.rsi > 70) score -= 5;
+                    // 4. RSI Semanal (10% do score)
+                    if (ind.rsiWeekly) {
+                        if (ind.rsiWeekly < 30) score += 10;
+                        else if (ind.rsiWeekly <= 70) score += 5;
+                        // Se >70, não adiciona
+                    }
+                    
+                    // 5. RSI Mensal (5% do score)
+                    if (ind.rsiMonthly) {
+                        if (ind.rsiMonthly < 30) score += 5;
+                        else if (ind.rsiMonthly <= 70) score += 2.5;
                     }
                     
                     // Ajustar para 0-100
@@ -1103,8 +1210,13 @@
                     ind.ema200 = App.Indicators.calculateEMA(closes, 200);
                     ind.sma50 = App.Indicators.calculateSMA(closes, 50);
                     
-                    // RSI (14 períodos)
-                    ind.rsi = App.Indicators.calcRSI(closes);
+                    // RSI específico para holders (semanal e mensal)
+                    if (tf === "1w") {
+                        ind.rsiWeekly = App.Indicators.calculateRSI(closes, 14);
+                    }
+                    if (tf === "1M") {
+                        ind.rsiMonthly = App.Indicators.calculateRSI(closes, 14);
+                    }
                     
                     // Análise histórica
                     const historical = App.State.historicalData[symbol.toUpperCase()];
@@ -1126,27 +1238,6 @@
                     if (ind.volatility < 0.7) ind.riskLevel = 'low';
                     else if (ind.volatility < 1.2) ind.riskLevel = 'moderate';
                     else ind.riskLevel = 'high';
-                },
-                
-                // RSI (mantido para compatibilidade)
-                calcRSI: (closes, period = 14) => {
-                    if (closes.length < period + 1) return null;
-                    
-                    let gains = [];
-                    let losses = [];
-                    
-                    for (let i = 1; i < closes.length; i++) {
-                        const change = closes[i] - closes[i - 1];
-                        gains.push(change > 0 ? change : 0);
-                        losses.push(change < 0 ? -change : 0);
-                    }
-                    
-                    const avgGain = gains.slice(-period).reduce((a, b) => a + b, 0) / period;
-                    const avgLoss = losses.slice(-period).reduce((a, b) => a + b, 0) / period;
-                    
-                    if (avgLoss === 0) return 100;
-                    const rs = avgGain / avgLoss;
-                    return 100 - (100 / (1 + rs));
                 }
             },
 
@@ -1419,6 +1510,36 @@
                         card.querySelector('.metric-historical').innerText = i.historicalPercentile ? `${i.historicalPercentile.toFixed(0)}%` : '--';
                         card.querySelector('.metric-risk').innerText = i.riskLevel || '--';
                         
+                        // RSI Semanal
+                        const rsiWeekly = App.State.indicatorsData[s]?.["1w"]?.rsiWeekly;
+                        const rsiWeeklyEl = card.querySelector('.metric-rsi-weekly');
+                        if (rsiWeekly) {
+                            rsiWeeklyEl.innerText = rsiWeekly.toFixed(0);
+                            if (rsiWeekly < 30) {
+                                rsiWeeklyEl.className = 'metric-rsi-weekly text-rsi-oversold';
+                            } else if (rsiWeekly > 70) {
+                                rsiWeeklyEl.className = 'metric-rsi-weekly text-rsi-overbought';
+                            } else {
+                                rsiWeeklyEl.className = 'metric-rsi-weekly text-rsi-neutral';
+                            }
+                            
+                            // Atualizar indicador visual de RSI
+                            const rsiIndicator = card.querySelector('.rsi-fill');
+                            const rsiPercent = Math.min(100, Math.max(0, rsiWeekly));
+                            rsiIndicator.style.width = `${rsiPercent}%`;
+                            
+                            if (rsiWeekly < 30) {
+                                rsiIndicator.className = 'rsi-fill rsi-oversold';
+                            } else if (rsiWeekly > 70) {
+                                rsiIndicator.className = 'rsi-fill rsi-overbought';
+                            } else {
+                                rsiIndicator.className = 'rsi-fill rsi-neutral';
+                            }
+                        } else {
+                            rsiWeeklyEl.innerText = '--';
+                            rsiWeeklyEl.className = 'metric-rsi-weekly text-white';
+                        }
+                        
                         // Atualizar fase
                         const phaseText = i.holderPhase === 'accumulation' ? 'ACUMULAR' : 
                                          i.holderPhase === 'profit_taking' ? 'REALIZAR' : 'MANTER';
@@ -1463,6 +1584,26 @@
                             card.querySelector('.zone-fair').innerText = `$${i.priceZones.zone3.toFixed(2)}`;
                             card.querySelector('.zone-partial').innerText = `$${i.priceZones.zone4.toFixed(2)}`;
                             card.querySelector('.zone-full').innerText = `$${i.priceZones.zone5.toFixed(2)}`;
+                        }
+                        
+                        // Atualizar análise de momentum (RSI)
+                        const rsiWeeklyValue = App.State.indicatorsData[s]?.["1w"]?.rsiWeekly;
+                        const rsiMonthlyValue = App.State.indicatorsData[s]?.["1M"]?.rsiWeekly; // Usando rsiWeekly do timeframe mensal
+                        
+                        if (rsiWeeklyValue) {
+                            card.querySelector('.rsi-weekly-value').innerText = rsiWeeklyValue.toFixed(2);
+                            card.querySelector('.rsi-weekly-value').className = `rsi-weekly-value ${rsiWeeklyValue < 30 ? 'text-rsi-oversold' : rsiWeeklyValue > 70 ? 'text-rsi-overbought' : 'text-rsi-neutral'}`;
+                        }
+                        
+                        if (rsiMonthlyValue) {
+                            card.querySelector('.rsi-monthly-value').innerText = rsiMonthlyValue.toFixed(2);
+                            card.querySelector('.rsi-monthly-value').className = `rsi-monthly-value ${rsiMonthlyValue < 30 ? 'text-rsi-oversold' : rsiMonthlyValue > 70 ? 'text-rsi-overbought' : 'text-rsi-neutral'}`;
+                        }
+                        
+                        // Atualizar interpretação do RSI
+                        if (rsiWeeklyValue) {
+                            card.querySelector('.rsi-interpretation').innerText = App.Indicators.interpretRSI(rsiWeeklyValue);
+                            card.querySelector('.rsi-interpretation').className = `rsi-interpretation ${rsiWeeklyValue < 30 ? 'text-rsi-oversold' : rsiWeeklyValue > 70 ? 'text-rsi-overbought' : 'text-rsi-neutral'}`;
                         }
                         
                         // Atualizar análise holder
@@ -1514,7 +1655,7 @@
                     });
                     
                     let s = chart.addCandlestickSeries({upColor:'#10b981',downColor:'#ef4444'});
-                    let d = App.Core.getOHLC(sym, "1d");
+                    let d = App.Core.getOHLC(sym, "1w"); // Gráfico semanal como padrão para holders
                     s.setData(d.map(x=>({time:x.time/1000,open:x.open,high:x.high,low:x.low,close:x.close})));
                     
                     // Adicionar SMA200
