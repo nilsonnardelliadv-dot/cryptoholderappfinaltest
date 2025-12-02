@@ -3,1232 +3,1306 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CryptoPanelPRO - Versão Holder (CoinGecko)</title>
+    <title>CryptoPanel HOLDER - Sistema de Acumulação de Longo Prazo</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
-    <style>
-        /* CSS otimizado para mobile e layout compacto */
-        :root {
-            --color-dark-950: #05070a;
-            --color-dark-900: #0b0e14;
-            --color-dark-800: #151a23;
-            --color-dark-700: #232a3b;
-            --color-dark-600: #374151;
-            --color-brand-500: #3b82f6;
-            --color-brand-600: #2563eb;
-            --color-green-500: #10b981;
-            --color-red-500: #ef4444;
-            --color-yellow-500: #f59e0b;
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    colors: {
+                        dark: { 950: '#05070a', 900: '#0b0e14', 800: '#151a23', 700: '#232a3b', 600: '#374151' },
+                        brand: { 500: '#3b82f6', 600: '#2563eb' },
+                        score: { 
+                            buy: '#10b981',       // > 70
+                            hold: '#f59e0b',      // 40-70
+                            sell: '#ef4444',      // < 40
+                            accumulate: '#22c55e', // Acumulação ativa
+                            distribute: '#ec4899' // Distribuição
+                        }
+                    },
+                    animation: { 
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite'
+                    }
+                }
+            }
         }
+    </script>
 
+    <style>
+        /* Estilos base otimizados para Holder */
+        :root {
+            --color-buy: #10b981;
+            --color-hold: #f59e0b;
+            --color-sell: #ef4444;
+            --color-accumulate: #22c55e;
+            --color-distribute: #ec4899;
+        }
+        
         body { 
-            background-color: var(--color-dark-950); 
+            background: linear-gradient(135deg, #05070a 0%, #0b0e14 50%, #151a23 100%);
             color: #e5e7eb; 
-            overflow-x: hidden;
+            min-height: 100vh;
             font-family: 'Inter', sans-serif;
         }
-
-        /* Scrollbar personalizada */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: var(--color-dark-900); }
-        ::-webkit-scrollbar-thumb { background: var(--color-dark-700); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--color-brand-500); }
-
-        /* Classes utilitárias */
-        .glass {
-            background: rgba(11, 14, 20, 0.95);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+        
+        /* Cards com gradientes temáticos */
+        .card-accumulate {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.02) 100%);
+            border-left: 4px solid var(--color-accumulate);
         }
-
-        .compact-table th, .compact-table td {
-            padding: 0.375rem 0.5rem !important;
-            font-size: 0.75rem;
-            vertical-align: middle;
+        
+        .card-distribute {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.05) 0%, rgba(236, 72, 153, 0.02) 100%);
+            border-left: 4px solid var(--color-distribute);
         }
-
-        .mobile-optimized {
-            font-size: 0.875rem;
+        
+        .card-hold {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.02) 100%);
+            border-left: 4px solid var(--color-hold);
         }
-
-        .table-row-high { background-color: rgba(16, 185, 129, 0.1) !important; }
-        .table-row-mid { background-color: rgba(59, 130, 246, 0.1) !important; }
-        .table-row-low { background-color: rgba(239, 68, 68, 0.1) !important; }
-
-        /* Badges de assimetria */
-        .asymmetry-badge {
-            font-size: 0.7rem;
-            padding: 0.125rem 0.5rem;
-            border-radius: 0.75rem;
-            font-weight: 800;
-            text-transform: uppercase;
-        }
-        .asymmetry-very-high { background-color: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; }
-        .asymmetry-high { background-color: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #22c55e; }
-        .asymmetry-medium { background-color: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #f59e0b; }
-        .asymmetry-low { background-color: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; }
-
-        /* Progress bar para score */
-        .score-bar {
+        
+        /* Indicadores de volume */
+        .volume-bar {
             height: 4px;
-            width: 100%;
-            background-color: var(--color-dark-600);
             border-radius: 2px;
+            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+            position: relative;
             overflow: hidden;
         }
-        .score-fill {
-            height: 100%;
-            transition: width 0.3s ease;
-        }
-
-        /* Layout de duas colunas para desktop */
-        @media (min-width: 1024px) {
-            .main-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 1rem;
-            }
-            .top-10-section {
-                grid-column: 1;
-            }
-            .other-coins-section {
-                grid-column: 2;
-                max-height: 600px;
-                overflow-y: auto;
-            }
-        }
-
-        /* Tooltips educacionais */
-        .metric-tooltip {
+        
+        .volume-bar::after {
+            content: '';
             position: absolute;
-            background: var(--color-dark-900);
-            border: 1px solid var(--color-dark-700);
-            border-radius: 0.5rem;
-            padding: 1rem;
-            max-width: 300px;
-            z-index: 1000;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            display: none;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 2s infinite;
         }
-        .metric-tooltip.show {
-            display: block;
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
-        .metric-tooltip h4 {
-            color: var(--color-brand-500);
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
+        
+        /* Progresso de acumulação */
+        .accumulation-progress {
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.1);
+            overflow: hidden;
         }
-        .metric-tooltip p {
-            font-size: 0.75rem;
-            color: #d1d5db;
-            line-height: 1.4;
+        
+        .accumulation-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981 0%, #22c55e 100%);
+            border-radius: 3px;
+            transition: width 0.5s ease;
         }
-        .metric-tooltip .tip-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #60a5fa;
-            font-weight: 800;
-            margin-top: 0.75rem;
-            display: block;
+        
+        /* Tooltip avançado */
+        .advanced-tooltip {
+            background: linear-gradient(135deg, rgba(11, 14, 20, 0.95) 0%, rgba(23, 42, 70, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border-radius: 12px;
         }
-
+        
         /* Animações */
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
-        .animate-slide-in {
-            animation: slideIn 0.3s ease-out;
+        
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        /* Gráficos customizados */
+        .sparkline {
+            stroke-width: 2;
+            fill: none;
+        }
+        
+        .sparkline-up {
+            stroke: #10b981;
+        }
+        
+        .sparkline-down {
+            stroke: #ef4444;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .mobile-stack { flex-direction: column !important; }
+            .mobile-full { width: 100% !important; }
+            .mobile-text-center { text-align: center !important; }
+        }
+        
+        /* Scrollbar customizada */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(11, 14, 20, 0.5);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
         }
     </style>
 </head>
-<body class="antialiased min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white">
+<body class="antialiased min-h-screen flex flex-col font-sans">
 
-    <!-- Header Compacto -->
-    <header class="glass sticky top-0 z-50 border-b border-gray-800 shadow-lg">
-        <div class="max-w-[1800px] mx-auto px-2 sm:px-4 h-14 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-gradient-to-br from-brand-600 to-indigo-800 rounded-lg flex items-center justify-center">
-                    <i class="fa-solid fa-layer-group text-white text-sm"></i>
+    <!-- Header Principal -->
+    <header class="bg-dark-900/80 backdrop-blur-lg sticky top-0 z-50 border-b border-gray-800 shadow-xl">
+        <div class="max-w-[1800px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-brand-600 to-blue-900 rounded-xl flex items-center justify-center shadow-lg">
+                    <i class="fa-solid fa-diamond text-white text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-sm text-white">CryptoPanel<span class="text-brand-500">HOLDER</span></h1>
-                    <div class="text-[8px] text-gray-400 font-mono mt-0.5" id="last-update">Conectando...</div>
+                    <h1 class="font-bold text-xl text-white tracking-tight">
+                        CryptoPanel<span class="text-brand-500 font-extrabold">HOLDER</span>
+                        <span class="text-[10px] text-gray-400 bg-gray-800 rounded px-2 py-1 ml-2">v2.0 LONG TERM</span>
+                    </h1>
+                    <p class="text-xs text-gray-500 mt-1">Sistema de Acumulação Estratégica • Buy Low, Hold Strong</p>
                 </div>
             </div>
-            <div class="flex items-center gap-1">
-                <button id="refreshData" class="p-2 bg-brand-600 hover:bg-brand-500 rounded-lg text-white">
-                    <i class="fa-solid fa-rotate text-sm"></i>
+            
+            <div class="flex items-center gap-3">
+                <!-- Indicador de Mercado Global -->
+                <div class="hidden md:flex items-center gap-4 px-4 py-2 bg-dark-800 rounded-lg border border-gray-700">
+                    <div class="text-center">
+                        <div class="text-[10px] text-gray-400 uppercase tracking-widest">BTC Dominance</div>
+                        <div class="text-sm font-bold text-white">52.4%</div>
+                    </div>
+                    <div class="h-6 w-px bg-gray-700"></div>
+                    <div class="text-center">
+                        <div class="text-[10px] text-gray-400 uppercase tracking-widest">Fear & Greed</div>
+                        <div class="text-sm font-bold text-green-400">68</div>
+                    </div>
+                </div>
+                
+                <!-- Controles -->
+                <button id="refreshData" class="p-2 bg-brand-600 hover:bg-brand-500 rounded-lg text-white transition-colors">
+                    <i class="fa-solid fa-rotate"></i>
                 </button>
-                <button onclick="App.Portfolio.openModal()" class="p-2 bg-dark-800 border border-gray-700 rounded-lg" title="Portfólio">
-                    <i class="fa-solid fa-wallet text-sm"></i>
+                
+                <button onclick="HolderUI.openSettings()" class="p-2 bg-dark-800 hover:bg-gray-700 rounded-lg border border-gray-700 transition-colors">
+                    <i class="fa-solid fa-sliders"></i>
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Filtros Compactos -->
-    <div class="bg-dark-900 border-b border-gray-800 py-2 px-2">
-        <div class="flex flex-wrap gap-2 items-center justify-between">
-            <div class="flex flex-wrap gap-1">
-                <button class="filter-btn px-2 py-1 bg-dark-800 border border-gray-700 rounded text-[10px] hover:bg-dark-700 active-filter" data-filter="all">Todas</button>
-                <button class="filter-btn px-2 py-1 bg-dark-800 border border-gray-700 rounded text-[10px] hover:bg-dark-700" data-filter="score_high">Score Alto</button>
-                <button class="filter-btn px-2 py-1 bg-dark-800 border border-gray-700 rounded text-[10px] hover:bg-dark-700" data-filter="asymmetry_high">Assimetria Alta</button>
-            </div>
-            <div class="flex items-center gap-2">
-                <input type="text" id="searchToken" placeholder="Buscar..." class="bg-dark-800 border border-gray-700 rounded px-2 py-1 text-xs w-32" />
-                <button onclick="App.Token.addFromSearch()" class="px-2 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded text-xs">
-                    <i class="fa-solid fa-plus"></i>
-                </button>
+    <!-- Barra de Status do Mercado -->
+    <div class="bg-gradient-to-r from-dark-800 to-dark-900 border-y border-gray-800">
+        <div class="max-w-[1800px] mx-auto px-4 py-2">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="flex items-center justify-between p-3 bg-dark-900/50 rounded-lg border border-gray-800">
+                    <div>
+                        <div class="text-xs text-gray-400">Total Market Cap</div>
+                        <div class="text-lg font-bold text-white">$2.4T</div>
+                    </div>
+                    <div class="text-green-400 text-sm">
+                        <i class="fa-solid fa-arrow-up mr-1"></i> 3.2%
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between p-3 bg-dark-900/50 rounded-lg border border-gray-800">
+                    <div>
+                        <div class="text-xs text-gray-400">24h Volume</div>
+                        <div class="text-lg font-bold text-white">$84.2B</div>
+                    </div>
+                    <div class="text-red-400 text-sm">
+                        <i class="fa-solid fa-arrow-down mr-1"></i> 1.8%
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between p-3 bg-dark-900/50 rounded-lg border border-gray-800">
+                    <div>
+                        <div class="text-xs text-gray-400">Stablecoins Dominance</div>
+                        <div class="text-lg font-bold text-white">12.8%</div>
+                    </div>
+                    <div class="text-gray-400 text-sm">
+                        <i class="fa-solid fa-minus mr-1"></i> 0.2%
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between p-3 bg-dark-900/50 rounded-lg border border-gray-800">
+                    <div>
+                        <div class="text-xs text-gray-400">Alt Season Index</div>
+                        <div class="text-lg font-bold text-yellow-400">74</div>
+                    </div>
+                    <div class="text-green-400 text-sm">
+                        <i class="fa-solid fa-arrow-up mr-1"></i> 5.1%
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <main class="flex-1 max-w-[1800px] mx-auto px-2 py-3 w-full">
-        <!-- Layout Principal: Top 10 fixo + Outras moedas com scroll -->
-        <div class="main-grid">
-            <!-- TOP 10 Oportunidades (Fixo) -->
-            <section class="glass rounded-xl overflow-hidden border border-gray-800 top-10-section mb-4 lg:mb-0">
-                <div class="bg-dark-800/80 p-3 border-b border-gray-700">
-                    <h3 class="text-white font-bold text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-crown text-yellow-500"></i> 
-                        Top 10 Oportunidades
-                    </h3>
+    <main class="flex-1 max-w-[1800px] mx-auto px-4 py-6 w-full">
+        <!-- Seção 1: Ranking de Oportunidades HOLDER -->
+        <section class="mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-ranking-star text-yellow-500"></i>
+                    Ranking de Oportunidades HOLDER
+                </h2>
+                <div class="flex gap-2">
+                    <button class="px-3 py-1 bg-dark-800 rounded-lg text-sm border border-gray-700 hover:bg-gray-800">
+                        <i class="fa-solid fa-filter mr-2"></i>Filtrar
+                    </button>
+                    <button onclick="HolderExport.generateReport()" class="px-3 py-1 bg-green-600 hover:bg-green-500 rounded-lg text-sm">
+                        <i class="fa-solid fa-file-excel mr-2"></i>Exportar
+                    </button>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full compact-table">
-                        <thead class="text-gray-400 uppercase text-[10px] bg-dark-900">
-                            <tr>
-                                <th class="p-2 text-center w-8">#</th>
-                                <th class="p-2">Token</th>
-                                <th class="p-2 text-right">Preço</th>
-                                <th class="p-2 text-right">Score</th>
-                                <th class="p-2 text-center">Assim</th>
-                            </tr>
-                        </thead>
-                        <tbody id="top10-table-body" class="divide-y divide-gray-800">
-                            <!-- Top 10 será renderizado aqui -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- OUTRAS MOEDAS (Scroll vertical) -->
-            <section class="glass rounded-xl overflow-hidden border border-gray-800 other-coins-section">
-                <div class="bg-dark-800/80 p-3 border-b border-gray-700">
-                    <h3 class="text-white font-bold text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-list text-gray-500"></i> 
-                        Outras Moedas (<span id="other-count">0</span>)
-                    </h3>
-                </div>
-                <div class="overflow-y-auto" style="max-height: 500px;">
-                    <table class="w-full compact-table">
-                        <thead class="text-gray-400 uppercase text-[10px] bg-dark-900 sticky top-0">
-                            <tr>
-                                <th class="p-2">Token</th>
-                                <th class="p-2 text-right">Preço</th>
-                                <th class="p-2 text-right">MCap</th>
-                                <th class="p-2 text-right">Score</th>
-                                <th class="p-2 text-center">RSI</th>
-                            </tr>
-                        </thead>
-                        <tbody id="other-table-body" class="divide-y divide-gray-800">
-                            <!-- Outras moedas serão renderizadas aqui -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
-
-        <!-- Cards Detalhados (Apenas para moedas selecionadas) -->
-        <div class="mt-4">
-            <h3 class="text-white font-bold text-sm mb-2">Análise Detalhada</h3>
-            <div id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                <!-- Cards serão renderizados aqui -->
             </div>
-        </div>
+            
+            <div class="bg-dark-900/50 rounded-xl border border-gray-800 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-dark-800">
+                            <tr class="text-left text-xs uppercase text-gray-400">
+                                <th class="p-4">#</th>
+                                <th class="p-4">Ativo</th>
+                                <th class="p-4 text-right">Preço</th>
+                                <th class="p-4 text-center">Score HOLDER</th>
+                                <th class="p-4 text-center">RSI (14d)</th>
+                                <th class="p-4 text-center">Volume / Média</th>
+                                <th class="p-4 text-center">Dist. ATH</th>
+                                <th class="p-4 text-center">Market Cap</th>
+                                <th class="p-4 text-center">Recomendação</th>
+                                <th class="p-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="holder-ranking" class="divide-y divide-gray-800">
+                            <!-- Dados serão inseridos via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Seção 2: Painel de Análise HOLDER -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Card 1: Top Acumulação -->
+            <div class="bg-dark-900/50 rounded-xl border border-gray-800 p-5 card-accumulate">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-green-400"></i>
+                        Top Acumulação
+                    </h3>
+                    <span class="text-xs text-gray-400">Oportunidades de compra</span>
+                </div>
+                <div id="accumulation-list" class="space-y-3">
+                    <!-- Lista gerada dinamicamente -->
+                </div>
+            </div>
+            
+            <!-- Card 2: Alerta de Distribuição -->
+            <div class="bg-dark-900/50 rounded-xl border border-gray-800 p-5 card-distribute">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-pink-400"></i>
+                        Alerta de Distribuição
+                    </h3>
+                    <span class="text-xs text-gray-400">Considerar venda parcial</span>
+                </div>
+                <div id="distribution-list" class="space-y-3">
+                    <!-- Lista gerada dinamicamente -->
+                </div>
+            </div>
+            
+            <!-- Card 3: Holders em Destaque -->
+            <div class="bg-dark-900/50 rounded-xl border border-gray-800 p-5 card-hold">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-hold text-yellow-400"></i>
+                        Holders em Destaque
+                    </h3>
+                    <span class="text-xs text-gray-400">Manter posição</span>
+                </div>
+                <div id="hold-list" class="space-y-3">
+                    <!-- Lista gerada dinamicamente -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- Seção 3: Cards de Análise Detalhada -->
+        <section class="mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-magnifying-glass-chart text-brand-500"></i>
+                    Análise Detalhada por Ativo
+                </h2>
+                <div class="relative">
+                    <input type="text" 
+                           id="search-assets" 
+                           placeholder="Buscar ativo (BTC, ETH...)" 
+                           class="bg-dark-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:border-brand-500 outline-none w-64">
+                </div>
+            </div>
+            
+            <div id="assets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Cards serão gerados dinamicamente -->
+            </div>
+        </section>
+        
+        <!-- Seção 4: Métricas de Mercado para HOLDERS -->
+        <section class="mb-8">
+            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-chart-bar text-purple-500"></i>
+                Métricas de Mercado para HOLDERS
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Métrica 1: Valuation Relativa -->
+                <div class="bg-dark-900/50 rounded-xl border border-gray-800 p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-semibold text-white">Valuation Relativa</h4>
+                        <i class="fa-solid fa-scale-balanced text-blue-400"></i>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">P/S Ratio</span>
+                            <span class="text-white font-mono">8.4</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">P/B Ratio</span>
+                            <span class="text-white font-mono">3.2</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">NVT Ratio</span>
+                            <span class="text-white font-mono">45.6</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Métrica 2: Liquidez & Volume -->
+                <div class="bg-dark-900/50 rounded-xl border border-gray-800 p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-semibold text-white">Liquidez & Volume</h4>
+                        <i class="fa-solid fa-water text-cyan-400"></i>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Volume / MCap</span>
+                            <span class="text-white font-mono">3.8%</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Depth Score</span>
+                            <span class="text-white font-mono">72/100</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Stablecoin Ratio</span>
+                            <span class="text-white font-mono">28.5%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Métrica 3: Sentimento Holders -->
+                <div class="bg-dark-900/50 rounded-xl border border-gray-800 p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-semibold text-white">Sentimento Holders</h4>
+                        <i class="fa-solid fa-brain text-green-400"></i>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Holder Conviction</span>
+                            <span class="text-white font-mono">85%</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Supply Locked</span>
+                            <span class="text-white font-mono">64.2%</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Avg Hold Time</span>
+                            <span class="text-white font-mono">128d</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Métrica 4: Risco & Volatilidade -->
+                <div class="bg-dark-900/50 rounded-xl border border-gray-800 p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-semibold text-white">Risco & Volatilidade</h4>
+                        <i class="fa-solid fa-shield text-red-400"></i>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Sharpe Ratio</span>
+                            <span class="text-white font-mono">1.8</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Max Drawdown</span>
+                            <span class="text-white font-mono">-24.3%</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Volatility 30d</span>
+                            <span class="text-white font-mono">68.4</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Seção 5: Estratégias de Acumulação -->
+        <section class="mb-8">
+            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-chess-board text-yellow-500"></i>
+                Estratégias de Acumulação Sugeridas
+            </h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <!-- Estratégia 1: DCA Otimizado -->
+                <div class="bg-gradient-to-br from-dark-800 to-dark-900 rounded-xl border border-gray-800 p-5">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-blue-900/50 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-calendar-day text-blue-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white">DCA Otimizado</h4>
+                            <p class="text-xs text-gray-400">Dollar-Cost Averaging inteligente</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-400">Próxima compra</span>
+                                <span class="text-blue-400">-12.4% do ATH</span>
+                            </div>
+                            <div class="accumulation-progress">
+                                <div class="accumulation-progress-fill" style="width: 65%"></div>
+                            </div>
+                        </div>
+                        <button class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-semibold">
+                            Configurar DCA
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Estratégia 2: Acumulação em Níveis -->
+                <div class="bg-gradient-to-br from-dark-800 to-dark-900 rounded-xl border border-gray-800 p-5">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-green-900/50 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-layer-group text-green-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white">Acumulação em Níveis</h4>
+                            <p class="text-xs text-gray-400">Compras em suportes técnicos</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="text-sm text-gray-300">
+                            <div class="flex justify-between mb-1">
+                                <span>Nível 1 (Fib 0.618)</span>
+                                <span class="text-green-400">Ativo</span>
+                            </div>
+                            <div class="flex justify-between mb-1">
+                                <span>Nível 2 (SMA200)</span>
+                                <span class="text-yellow-400">Pendente</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Nível 3 (ATL)</span>
+                                <span class="text-red-400">Distante</span>
+                            </div>
+                        </div>
+                        <button class="w-full bg-green-600 hover:bg-green-500 text-white py-2 rounded-lg text-sm font-semibold">
+                            Definir Níveis
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Estratégia 3: Staking & Yield -->
+                <div class="bg-gradient-to-br from-dark-800 to-dark-900 rounded-xl border border-gray-800 p-5">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-purple-900/50 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-coins text-purple-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white">Staking & Yield</h4>
+                            <p class="text-xs text-gray-400">Renda passiva enquanto segura</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-2 gap-3 text-center">
+                            <div class="bg-dark-800 rounded-lg p-2">
+                                <div class="text-xs text-gray-400">APY Médio</div>
+                                <div class="text-lg font-bold text-white">8.4%</div>
+                            </div>
+                            <div class="bg-dark-800 rounded-lg p-2">
+                                <div class="text-xs text-gray-400">Risk Score</div>
+                                <div class="text-lg font-bold text-yellow-400">Low</div>
+                            </div>
+                        </div>
+                        <button class="w-full bg-purple-600 hover:bg-purple-500 text-white py-2 rounded-lg text-sm font-semibold">
+                            Explorar Staking
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <!-- Modal de Adicionar Token -->
-    <div id="addTokenModal" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-4">
-        <div class="bg-dark-900 border border-gray-700 rounded-xl w-full max-w-md">
-            <div class="p-4 border-b border-gray-700 flex justify-between items-center">
-                <h3 class="text-white font-bold">Adicionar Token</h3>
-                <button onclick="document.getElementById('addTokenModal').classList.add('hidden')" class="text-gray-500 hover:text-white">
-                    <i class="fa-solid fa-times"></i>
-                </button>
+    <!-- Footer -->
+    <footer class="bg-dark-900 border-t border-gray-800 py-6 mt-12">
+        <div class="max-w-[1800px] mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-gradient-to-br from-brand-600 to-blue-900 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-diamond text-white text-sm"></i>
+                        </div>
+                        <span class="font-bold text-white">CryptoPanel<span class="text-brand-500">HOLDER</span></span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Sistema de análise para investidores de longo prazo</p>
+                </div>
+                
+                <div class="flex gap-6">
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400">Ativos Monitorados</div>
+                        <div class="text-lg font-bold text-white" id="total-assets">24</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400">Score Médio</div>
+                        <div class="text-lg font-bold text-green-400" id="avg-score">68.4</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400">Última Atualização</div>
+                        <div class="text-lg font-bold text-white" id="last-update">--:--</div>
+                    </div>
+                </div>
             </div>
-            <div class="p-4">
-                <input type="text" id="token-search-input" placeholder="Digite o nome ou símbolo (ex: bitcoin)" class="w-full bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 text-white mb-3" />
-                <div id="search-results" class="space-y-2 max-h-60 overflow-y-auto"></div>
+            
+            <div class="text-center text-xs text-gray-600 mt-6 pt-6 border-t border-gray-800">
+                <p>© 2024 CryptoPanel HOLDER. Para fins educacionais. Não é recomendação de investimento.</p>
+                <p class="mt-1">Dados fornecidos por Binance API • Atualizado em tempo real</p>
             </div>
+        </div>
+    </footer>
+
+    <!-- Modais e Overlays -->
+    <div id="asset-detail-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-dark-900 rounded-xl border border-gray-800 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <!-- Conteúdo será preenchido dinamicamente -->
         </div>
     </div>
 
-    <!-- Tooltip Educacional (Dinâmico) -->
-    <div id="metric-tooltip" class="metric-tooltip"></div>
+    <div id="settings-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-dark-900 rounded-xl border border-gray-800 w-full max-w-2xl">
+            <!-- Configurações -->
+        </div>
+    </div>
 
+    <!-- Template para Card de Ativo -->
+    <template id="asset-card-template">
+        <div class="bg-dark-900/50 rounded-xl border border-gray-800 p-4 hover:border-brand-500 transition-colors cursor-pointer asset-card" data-symbol="">
+            <div class="flex justify-between items-start mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold holder-score-badge">
+                            --
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white text-lg asset-symbol">BTC</h4>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 asset-category">Layer 1</span>
+                            <span class="text-xs text-gray-500">#<span class="asset-rank">1</span></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xl font-bold text-white asset-price">$0.00</div>
+                    <div class="text-sm asset-change">0.00%</div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-dark-800 rounded-lg p-2">
+                    <div class="text-xs text-gray-400 mb-1">RSI (14d)</div>
+                    <div class="text-sm font-bold asset-rsi">--</div>
+                </div>
+                <div class="bg-dark-800 rounded-lg p-2">
+                    <div class="text-xs text-gray-400 mb-1">Volume / Média</div>
+                    <div class="text-sm font-bold asset-volume-ratio">--</div>
+                </div>
+                <div class="bg-dark-800 rounded-lg p-2">
+                    <div class="text-xs text-gray-400 mb-1">Market Cap</div>
+                    <div class="text-sm font-bold asset-market-cap">--</div>
+                </div>
+                <div class="bg-dark-800 rounded-lg p-2">
+                    <div class="text-xs text-gray-400 mb-1">Dist. ATH</div>
+                    <div class="text-sm font-bold asset-ath-distance">--</div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <div class="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>Progresso de Acumulação</span>
+                    <span class="asset-accumulation-progress-text">0%</span>
+                </div>
+                <div class="accumulation-progress">
+                    <div class="accumulation-progress-fill asset-accumulation-progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div class="flex gap-2">
+                <button class="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 rounded-lg text-sm font-semibold transition-colors">
+                    <i class="fa-solid fa-plus mr-1"></i>Acumular
+                </button>
+                <button class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-semibold transition-colors">
+                    <i class="fa-solid fa-chart-line mr-1"></i>Analisar
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Script Principal -->
     <script>
-        // ============================================================================
-        // CONFIGURAÇÕES E CONSTANTES
-        // ============================================================================
-        const COINGECKO_API = "https://api.coingecko.com/api/v3";
-        const CACHE_DURATION = 15 * 60 * 1000; // 15 minutos
-        const MAX_CONCURRENT_REQUESTS = 3;
-
-        // ============================================================================
-        // ESTADO GLOBAL DO APLICATIVO
-        // ============================================================================
-        const AppState = {
-            // Tokens favoritos (apenas estes serão analisados)
-            favoriteTokens: JSON.parse(localStorage.getItem('holder_favorites')) || ['bitcoin', 'ethereum'],
-            
-            // Dados das moedas
-            coinData: {}, // Dados básicos da CoinGecko
-            technicalData: {}, // Indicadores técnicos calculados
-            ohlcData: {}, // Dados OHLC em cache
-            
+        // Sistema CryptoPanel HOLDER
+        const HolderSystem = {
             // Configurações
-            settings: {
-                autoRefresh: true,
-                refreshInterval: 300000, // 5 minutos
-                showTop10: true,
-                compactView: true
+            config: {
+                api: {
+                    binance: 'https://api.binance.com/api/v3',
+                    coinGecko: 'https://api.coingecko.com/api/v3',
+                    fearGreed: 'https://api.alternative.me/fng'
+                },
+                refreshInterval: 30000, // 30 segundos
+                defaultTokens: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'ADAUSDT', 'XRPUSDT', 'DOTUSDT', 'AVAXUSDT', 'MATICUSDT', 'LINKUSDT']
             },
             
-            // Estado da UI
-            activeFilter: 'all',
-            sortBy: 'score_desc',
-            isLoading: false
-        };
-
-        // ============================================================================
-        // BIBLIOTECA DE INDICADORES TÉCNICOS (100% TradingView Compatível)
-        // ============================================================================
-        const TechnicalIndicators = {
-            /**
-             * RSI - Relative Strength Index (Método de Wilder)
-             * Implementação idêntica ao TradingView
-             */
-            calculateRSI: function(closes, period = 14) {
-                if (closes.length < period + 1) return 50;
-                
-                let gains = [];
-                let losses = [];
-                
-                // Calcula ganhos e perdas
-                for (let i = 1; i < closes.length; i++) {
-                    const change = closes[i] - closes[i - 1];
-                    gains.push(change > 0 ? change : 0);
-                    losses.push(change < 0 ? -change : 0);
-                }
-                
-                // Médias iniciais
-                let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
-                let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
-                
-                // Suavização Wilder (RMA)
-                for (let i = period; i < gains.length; i++) {
-                    avgGain = (avgGain * (period - 1) + gains[i]) / period;
-                    avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
-                }
-                
-                if (avgLoss === 0) return 100;
-                const rs = avgGain / avgLoss;
-                return 100 - (100 / (1 + rs));
+            // Estado do Sistema
+            state: {
+                tokens: JSON.parse(localStorage.getItem('holder_tokens')) || this.config.defaultTokens,
+                watchlist: JSON.parse(localStorage.getItem('holder_watchlist')) || [],
+                alerts: JSON.parse(localStorage.getItem('holder_alerts')) || [],
+                strategies: JSON.parse(localStorage.getItem('holder_strategies')) || [],
+                marketData: {},
+                holderScores: {},
+                lastUpdate: null,
+                wsConnection: null
             },
-
-            /**
-             * EMA - Exponential Moving Average
-             */
-            calculateEMA: function(closes, period) {
-                if (closes.length < period) return null;
+            
+            // Inicialização
+            async init() {
+                console.log('🚀 Inicializando CryptoPanel HOLDER...');
                 
-                const k = 2 / (period + 1);
-                let ema = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
+                // Carregar dados iniciais
+                await this.loadMarketData();
+                await this.calculateHolderScores();
                 
-                for (let i = period; i < closes.length; i++) {
-                    ema = closes[i] * k + ema * (1 - k);
-                }
+                // Inicializar UI
+                this.renderRanking();
+                this.renderAssetCards();
+                this.renderDashboardMetrics();
                 
-                return ema;
+                // Configurar atualizações automáticas
+                this.setupAutoRefresh();
+                
+                // Configurar WebSocket
+                this.setupWebSocket();
+                
+                // Atualizar timestamp
+                this.updateLastUpdate();
+                
+                // Configurar event listeners
+                this.setupEventListeners();
             },
-
-            /**
-             * SMA - Simple Moving Average
-             */
-            calculateSMA: function(closes, period) {
-                if (closes.length < period) return null;
-                const slice = closes.slice(-period);
-                return slice.reduce((a, b) => a + b, 0) / period;
-            },
-
-            /**
-             * MACD - Moving Average Convergence Divergence (12, 26, 9)
-             * Implementação padrão TradingView
-             */
-            calculateMACD: function(closes) {
-                if (closes.length < 26) return { macd: 0, signal: 0, histogram: 0 };
-                
-                // Calcula EMA12 e EMA26 para cada ponto
-                const ema12Array = [];
-                const ema26Array = [];
-                
-                // EMA inicial
-                let ema12 = closes.slice(0, 12).reduce((a, b) => a + b, 0) / 12;
-                let ema26 = closes.slice(0, 26).reduce((a, b) => a + b, 0) / 26;
-                
-                ema12Array.push(ema12);
-                ema26Array.push(ema26);
-                
-                // Calcula EMAs subsequentes
-                const k12 = 2 / (12 + 1);
-                const k26 = 2 / (26 + 1);
-                
-                for (let i = 12; i < closes.length; i++) {
-                    ema12 = closes[i] * k12 + ema12 * (1 - k12);
-                    ema12Array.push(ema12);
-                }
-                
-                for (let i = 26; i < closes.length; i++) {
-                    ema26 = closes[i] * k26 + ema26 * (1 - k26);
-                    ema26Array.push(ema26);
-                }
-                
-                // Calcula MACD line (começa do ponto 26)
-                const macdLine = [];
-                const startIdx = Math.max(ema12Array.length, ema26Array.length) - Math.min(ema12Array.length, ema26Array.length);
-                
-                for (let i = startIdx; i < Math.min(ema12Array.length, ema26Array.length); i++) {
-                    macdLine.push(ema12Array[i] - ema26Array[i]);
-                }
-                
-                if (macdLine.length < 9) return { macd: macdLine[macdLine.length - 1] || 0, signal: 0, histogram: 0 };
-                
-                // Calcula Signal line (EMA9 do MACD)
-                let signal = macdLine.slice(0, 9).reduce((a, b) => a + b, 0) / 9;
-                const kSignal = 2 / (9 + 1);
-                
-                for (let i = 9; i < macdLine.length; i++) {
-                    signal = macdLine[i] * kSignal + signal * (1 - kSignal);
-                }
-                
-                const currentMACD = macdLine[macdLine.length - 1] || 0;
-                const histogram = currentMACD - signal;
-                
-                return {
-                    macd: currentMACD,
-                    signal: signal,
-                    histogram: histogram
-                };
-            },
-
-            /**
-             * Volatilidade - Log Returns Anualizada
-             * Método profissional (mesmo do TradingView)
-             */
-            calculateVolatility: function(closes) {
-                if (closes.length < 2) return 0;
-                
-                // Calcula log returns
-                const returns = [];
-                for (let i = 1; i < closes.length; i++) {
-                    returns.push(Math.log(closes[i] / closes[i - 1]));
-                }
-                
-                // Desvio padrão dos returns
-                const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
-                const variance = returns.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / returns.length;
-                const stdDev = Math.sqrt(variance);
-                
-                // Anualização (assumindo dados diários)
-                return stdDev * Math.sqrt(365) * 100;
-            },
-
-            /**
-             * Calcula todos os indicadores para um conjunto de preços
-             */
-            calculateAllIndicators: function(closes) {
-                return {
-                    rsi: this.calculateRSI(closes, 14),
-                    sma30: this.calculateSMA(closes, 30),
-                    sma200: this.calculateSMA(closes, 200),
-                    ema30: this.calculateEMA(closes, 30),
-                    ema200: this.calculateEMA(closes, 200),
-                    macd: this.calculateMACD(closes),
-                    volatility: this.calculateVolatility(closes),
-                    momentum30: closes.length >= 30 ? 
-                        ((closes[closes.length - 1] / closes[closes.length - 30] - 1) * 100) : 0,
-                    momentum90: closes.length >= 90 ? 
-                        ((closes[closes.length - 1] / closes[closes.length - 90] - 1) * 100) : 0
-                };
-            }
-        };
-
-        // ============================================================================
-        // SISTEMA DE PONTUAÇÃO HOLDER (COMEÇA EM 0, PENALIDADES NEGATIVAS)
-        // ============================================================================
-        const HolderScoring = {
-            /**
-             * Calcula score completo para um token
-             * INÍCIO: score = 0
-             * SUBPONTUAÇÕES PODEM SER NEGATIVAS
-             * CLAMP FINAL: 0-100
-             */
-            calculateScore: function(coinId) {
-                const coin = AppState.coinData[coinId];
-                const tech = AppState.technicalData[coinId];
-                
-                if (!coin || !tech) return 0;
-                
-                let score = 0;
-                
-                // 1. FUNDAMENTOS (40 pontos) - PENALIDADES FORTES
-                let fundamentals = 0;
-                
-                // Market Cap (penalidades severas para microcaps)
-                const marketCap = coin.market_cap || 0;
-                if (marketCap < 50000000) fundamentals -= 25; // < 50M
-                if (marketCap < 25000000) fundamentals -= 10; // < 25M
-                if (marketCap < 10000000) fundamentals -= 15; // < 10M
-                
-                // Volume (penalidade por baixa liquidez)
-                const volume = coin.total_volume || 0;
-                if (volume < 5000000) fundamentals -= 10; // < 5M
-                if (volume < 2000000) fundamentals -= 5;  // < 2M
-                
-                // Volume/MCap Ratio (bônus por liquidez)
-                if (marketCap > 0) {
-                    const ratio = (volume / marketCap) * 100;
-                    if (ratio > 10) fundamentals += 10;
-                    else if (ratio > 5) fundamentals += 5;
-                    else if (ratio > 2) fundamentals += 2;
-                    else if (ratio < 0.5) fundamentals -= 5;
-                }
-                
-                // Penalidade dupla para microcaps sem volume
-                if (marketCap < 50000000 && volume < 2000000) {
-                    fundamentals -= 10;
-                }
-                
-                score += fundamentals;
-                
-                // 2. VALUATION (30 pontos) - DISTÂNCIA DO ATH
-                let valuation = 0;
-                
-                const athDistance = coin.ath_change_percentage || 0; // Percentual abaixo do ATH
-                
-                // Quanto mais longe do ATH (em tendência saudável), mais pontos
-                if (athDistance > 80) valuation += 15;  // >80% abaixo
-                else if (athDistance > 60) valuation += 12;
-                else if (athDistance > 40) valuation += 8;
-                else if (athDistance > 20) valuation += 4;
-                else if (athDistance > 0) valuation += 1;
-                else if (athDistance < 0) valuation -= 15; // Acima do ATH (penalidade)
-                
-                // Indicadores técnicos de valuation
-                if (tech.rsi < 30) valuation += 8;  // Oversold forte
-                else if (tech.rsi < 40) valuation += 4;
-                else if (tech.rsi > 70) valuation -= 8;  // Overbought
-                
-                // Distância para médias móveis
-                if (tech.sma30 && coin.current_price) {
-                    const distToMA30 = ((coin.current_price - tech.sma30) / tech.sma30) * 100;
-                    if (distToMA30 < -20) valuation += 5;  // Muito abaixo da MA30
-                    else if (distToMA30 > 30) valuation -= 5; // Muito acima da MA30
-                }
-                
-                score += valuation;
-                
-                // 3. MOMENTUM (20 pontos) - RETORNOS REAIS
-                let momentum = 0;
-                
-                // Momentum baseado em retornos reais
-                if (tech.momentum30 < -40) momentum += 10; // Queda extrema
-                else if (tech.momentum30 < -20) momentum += 7;
-                else if (tech.momentum30 < 0) momentum += 3;
-                else if (tech.momentum30 > 50) momentum -= 10; // Alta extrema (sobrecompra)
-                else if (tech.momentum30 > 20) momentum -= 5;
-                
-                // Momentum de longo prazo
-                if (tech.momentum90 < -60) momentum += 10;
-                else if (tech.momentum90 < -30) momentum += 5;
-                else if (tech.momentum90 > 100) momentum -= 10;
-                
-                score += momentum;
-                
-                // 4. RISCO (10 pontos) - VOLATILIDADE E SUPPLY
-                let risk = 0;
-                
-                // Supply Risk
-                if (coin.circulating_supply && coin.max_supply) {
-                    const circRatio = (coin.circulating_supply / coin.max_supply) * 100;
-                    if (circRatio > 90) risk += 7;  // Maior parte em circulação
-                    else if (circRatio > 70) risk += 4;
-                    else if (circRatio < 30) risk -= 5; // Muita inflação por vir
-                } else if (!coin.max_supply) {
-                    risk -= 3; // Sem max supply definido
-                }
-                
-                // Volatilidade (penaliza alta volatilidade)
-                if (tech.volatility > 15) risk -= 3;
-                else if (tech.volatility > 10) risk -= 2;
-                else if (tech.volatility < 5) risk += 2; // Baixa volatilidade (bom)
-                
-                // Microcaps voláteis: penalização dupla
-                if (marketCap < 50000000 && tech.volatility > 20) {
-                    risk -= 5;
-                }
-                
-                score += risk;
-                
-                // 5. BÔNUS DE ASSIMETRIA (condicional)
-                const asymmetry = this.calculateAsymmetry(coinId);
-                
-                // Bônus só aplica se fundamentos não forem catastróficos
-                if (fundamentals >= 20) {
-                    if (asymmetry.ratio > 4) score += 15;
-                    else if (asymmetry.ratio > 3) score += 10;
-                    else if (asymmetry.ratio > 2) score += 5;
-                } else {
-                    // Bônus reduzido para tokens com fundamentos ruins
-                    if (asymmetry.ratio > 4) score += 5;
-                    else if (asymmetry.ratio > 3) score += 3;
-                }
-                
-                // CLAMP FINAL: 0-100
-                return Math.max(0, Math.min(100, Math.round(score)));
-            },
-
-            /**
-             * Calcula assimetria realista (risco/recompensa)
-             * Ajusta ATH se for pico manipulatório
-             */
-            calculateAsymmetry: function(coinId) {
-                const coin = AppState.coinData[coinId];
-                const tech = AppState.technicalData[coinId];
-                
-                if (!coin || !tech) return { upside: 0, downside: 0, ratio: 0, classification: 'low' };
-                
-                // UPSIDE: Potencial até o ATH (com ajustes)
-                let upside = 0;
-                if (coin.ath && coin.current_price && coin.current_price > 0) {
-                    upside = ((coin.ath / coin.current_price) - 1) * 100;
-                    
-                    // Ajuste para ATHs manipulatórios (se volume no ATH era baixo)
-                    // Nota: CoinGecko não fornece volume no ATH, então usamos heurística
-                    if (upside > 1000 && coin.market_cap < 100000000) {
-                        upside = Math.min(upside, 500); // Limita upside absurdo de microcaps
-                    }
-                }
-                
-                // DOWNSIDE: Combinação de fatores de risco
-                let downside = 25; // Baseline
-                
-                // 1. Distância para SMA200 (suporte de longo prazo)
-                if (tech.sma200 && coin.current_price) {
-                    const distToSMA200 = Math.abs((coin.current_price - tech.sma200) / coin.current_price) * 100;
-                    downside = Math.max(downside, distToSMA200 * 1.5);
-                }
-                
-                // 2. Volatilidade (risco de oscilação)
-                downside = Math.max(downside, tech.volatility * 1.2);
-                
-                // 3. Drawdown estrutural (quão fundo já caiu)
-                const athDistance = coin.ath_change_percentage || 0;
-                if (athDistance > 70) {
-                    downside = Math.max(downside, 40); // Já caiu muito, risco de cair mais
-                }
-                
-                // 4. Liquidez (penalidade por baixo volume)
-                const volumeRatio = coin.total_volume && coin.market_cap ? 
-                    (coin.total_volume / coin.market_cap) * 100 : 0;
-                if (volumeRatio < 1) {
-                    downside += 15; // Baixíssima liquidez
-                } else if (volumeRatio < 5) {
-                    downside += 5;
-                }
-                
-                // Calcular razão
-                let ratio = 0;
-                if (downside > 0) {
-                    ratio = upside / downside;
-                }
-                
-                // Classificação
-                let classification = 'low';
-                if (ratio > 4) classification = 'very-high';
-                else if (ratio > 3) classification = 'high';
-                else if (ratio > 2) classification = 'medium';
-                
-                return {
-                    upside: Math.round(upside * 10) / 10,
-                    downside: Math.round(downside * 10) / 10,
-                    ratio: Math.round(ratio * 10) / 10,
-                    classification: classification
-                };
-            }
-        };
-
-        // ============================================================================
-        // PIPELINE DE CARREGAMENTO E CACHE
-        // ============================================================================
-        const DataPipeline = {
-            /**
-             * Busca dados OHLC com cache inteligente
-             */
-            fetchOHLC: async function(coinId, days = 90) {
-                const cacheKey = `ohlc_${coinId}_${days}`;
-                const now = Date.now();
-                
-                // Verifica cache
-                const cached = localStorage.getItem(cacheKey);
-                if (cached) {
-                    const { data, timestamp } = JSON.parse(cached);
-                    if (now - timestamp < CACHE_DURATION) {
-                        return data;
-                    }
-                }
-                
-                // Busca da API
+            
+            // Carregar dados de mercado
+            async loadMarketData() {
                 try {
-                    const response = await fetch(
-                        `${COINGECKO_API}/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`
-                    );
+                    // Carregar dados da Binance
+                    for (const symbol of this.state.tokens) {
+                        const [tickerData, klines, depth] = await Promise.all([
+                            this.fetchBinanceTicker(symbol),
+                            this.fetchBinanceKlines(symbol, '1d', 365), // 1 ano de dados
+                            this.fetchBinanceDepth(symbol)
+                        ]);
+                        
+                        this.state.marketData[symbol] = {
+                            ...tickerData,
+                            historicalData: klines,
+                            marketDepth: depth,
+                            timestamp: Date.now()
+                        };
+                    }
                     
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    
-                    const ohlc = await response.json();
-                    const closes = ohlc.map(d => d[4]); // Apenas preços de fechamento
-                    
-                    // Salva no cache
-                    localStorage.setItem(cacheKey, JSON.stringify({
-                        data: closes,
-                        timestamp: now
-                    }));
-                    
-                    return closes;
+                    console.log('✅ Dados de mercado carregados');
                 } catch (error) {
-                    console.error(`Erro ao buscar OHLC de ${coinId}:`, error);
+                    console.error('❌ Erro ao carregar dados:', error);
+                }
+            },
+            
+            // Calcular scores HOLDER
+            async calculateHolderScores() {
+                for (const symbol of this.state.tokens) {
+                    const data = this.state.marketData[symbol];
+                    if (!data) continue;
+                    
+                    const score = await this.calculateHolderScore(symbol, data);
+                    this.state.holderScores[symbol] = score;
+                }
+                
+                // Salvar scores
+                localStorage.setItem('holder_scores', JSON.stringify(this.state.holderScores));
+            },
+            
+            // Algoritmo de Score HOLDER
+            async calculateHolderScore(symbol, marketData) {
+                // Fatores para holders de longo prazo
+                const factors = {
+                    // 1. Valuation (40%)
+                    valuation: {
+                        weight: 0.4,
+                        subfactors: {
+                            rsi: this.calculateRSIScore(marketData),
+                            distanceATH: this.calculateDistanceATHScore(marketData),
+                            fibLevels: this.calculateFibonacciScore(marketData),
+                            mCapRank: await this.calculateMarketCapScore(symbol)
+                        }
+                    },
+                    
+                    // 2. Fundamentais (30%)
+                    fundamentals: {
+                        weight: 0.3,
+                        subfactors: {
+                            volumeHealth: this.calculateVolumeScore(marketData),
+                            liquidity: this.calculateLiquidityScore(marketData),
+                            tokenomics: await this.calculateTokenomicsScore(symbol),
+                            developerActivity: await this.calculateDevActivityScore(symbol)
+                        }
+                    },
+                    
+                    // 3. Sentimento (20%)
+                    sentiment: {
+                        weight: 0.2,
+                        subfactors: {
+                            holderConviction: this.calculateHolderConviction(symbol),
+                            socialSentiment: await this.calculateSocialSentiment(symbol),
+                            fearGreed: await this.getFearGreedIndex()
+                        }
+                    },
+                    
+                    // 4. Risco (10%)
+                    risk: {
+                        weight: 0.1,
+                        subfactors: {
+                            volatility: this.calculateVolatilityScore(marketData),
+                            drawdown: this.calculateDrawdownScore(marketData),
+                            correlationBTC: this.calculateBTCcorrelation(symbol, marketData)
+                        }
+                    }
+                };
+                
+                // Calcular score total (0-100)
+                let totalScore = 0;
+                let totalWeight = 0;
+                
+                for (const [category, categoryData] of Object.entries(factors)) {
+                    let categoryScore = 0;
+                    let categoryWeight = 0;
+                    
+                    for (const [subfactor, score] of Object.entries(categoryData.subfactors)) {
+                        categoryScore += score;
+                        categoryWeight++;
+                    }
+                    
+                    const avgCategoryScore = categoryWeight > 0 ? categoryScore / categoryWeight : 0;
+                    totalScore += avgCategoryScore * categoryData.weight;
+                    totalWeight += categoryData.weight;
+                }
+                
+                // Ajustar para 0-100
+                const finalScore = Math.min(100, Math.max(0, (totalScore / totalWeight) * 100));
+                
+                return {
+                    score: Math.round(finalScore),
+                    breakdown: factors,
+                    recommendation: this.getRecommendation(finalScore),
+                    timestamp: Date.now()
+                };
+            },
+            
+            // Funções auxiliares para cálculo de scores
+            calculateRSIScore(marketData) {
+                // Implementar cálculo RSI
+                const rsi = marketData.rsi || 50;
+                if (rsi < 30) return 90; // Oversold - excelente para compra
+                if (rsi < 40) return 75; // Quase oversold - bom para compra
+                if (rsi < 60) return 50; // Neutro
+                if (rsi < 70) return 25; // Quase overbought
+                return 10; // Overbought - evitar compra
+            },
+            
+            calculateDistanceATHScore(marketData) {
+                // Quanto mais longe do ATH, melhor para acumulação
+                const distance = marketData.distanceATH || 0;
+                if (distance > 80) return 95; // Muito abaixo do ATH
+                if (distance > 50) return 80; // Significativamente abaixo
+                if (distance > 30) return 60; // Moderadamente abaixo
+                if (distance > 10) return 40; // Próximo do ATH
+                return 20; // No ou perto do ATH
+            },
+            
+            calculateVolumeScore(marketData) {
+                // Volume saudável indica liquidez
+                const volumeRatio = marketData.volumeRatio || 1;
+                if (volumeRatio > 3) return 90; // Volume muito alto
+                if (volumeRatio > 1.5) return 75; // Volume acima da média
+                if (volumeRatio > 0.7) return 50; // Volume normal
+                if (volumeRatio > 0.3) return 30; // Volume baixo
+                return 10; // Volume muito baixo
+            },
+            
+            calculateLiquidityScore(marketData) {
+                // Profundidade do mercado
+                const depth = marketData.marketDepth || {};
+                const bidAskSpread = depth.spread || 0;
+                
+                if (bidAskSpread < 0.1) return 90; // Spread muito baixo
+                if (bidAskSpread < 0.5) return 75; // Spread baixo
+                if (bidAskSpread < 1) return 50; // Spread moderado
+                if (bidAskSpread < 2) return 30; // Spread alto
+                return 10; // Spread muito alto
+            },
+            
+            getRecommendation(score) {
+                if (score >= 75) return {
+                    action: 'ACCUMULATE',
+                    color: 'var(--color-accumulate)',
+                    icon: 'fa-plus',
+                    description: 'Forte oportunidade de acumulação'
+                };
+                if (score >= 60) return {
+                    action: 'BUY',
+                    color: 'var(--color-buy)',
+                    icon: 'fa-arrow-up',
+                    description: 'Boa oportunidade de compra'
+                };
+                if (score >= 40) return {
+                    action: 'HOLD',
+                    color: 'var(--color-hold)',
+                    icon: 'fa-hold',
+                    description: 'Manter posição atual'
+                };
+                if (score >= 25) return {
+                    action: 'REDUCE',
+                    color: 'var(--color-distribute)',
+                    icon: 'fa-minus',
+                    description: 'Considerar redução parcial'
+                };
+                return {
+                    action: 'SELL',
+                    color: 'var(--color-sell)',
+                    icon: 'fa-arrow-down',
+                    description: 'Considerar venda'
+                };
+            },
+            
+            // APIs
+            async fetchBinanceTicker(symbol) {
+                try {
+                    const response = await fetch(`${this.config.api.binance}/ticker/24hr?symbol=${symbol}`);
+                    return await response.json();
+                } catch (error) {
+                    console.error(`Erro ao buscar ticker ${symbol}:`, error);
                     return null;
                 }
             },
-
-            /**
-             * Busca dados básicos dos tokens favoritos
-             */
-            fetchCoinData: async function(coinIds) {
-                if (!coinIds.length) return {};
-                
+            
+            async fetchBinanceKlines(symbol, interval, limit) {
                 try {
                     const response = await fetch(
-                        `${COINGECKO_API}/coins/markets?vs_currency=usd&ids=${coinIds.join(',')}&order=market_cap_desc&sparkline=false&price_change_percentage=1h,24h,7d,30d,90d`
+                        `${this.config.api.binance}/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
                     );
-                    
-                    const coins = await response.json();
-                    const coinData = {};
-                    
-                    coins.forEach(coin => {
-                        coinData[coin.id] = coin;
-                    });
-                    
-                    return coinData;
+                    return await response.json();
                 } catch (error) {
-                    console.error('Erro ao buscar dados das moedas:', error);
-                    return {};
+                    console.error(`Erro ao buscar klines ${symbol}:`, error);
+                    return [];
                 }
             },
-
-            /**
-             * Pipeline completo: OHLC → Indicadores → Score
-             */
-            processToken: async function(coinId) {
-                // 1. Busca dados básicos (se necessário)
-                if (!AppState.coinData[coinId]) {
-                    const data = await this.fetchCoinData([coinId]);
-                    AppState.coinData[coinId] = data[coinId];
+            
+            async fetchBinanceDepth(symbol) {
+                try {
+                    const response = await fetch(`${this.config.api.binance}/depth?symbol=${symbol}&limit=20`);
+                    return await response.json();
+                } catch (error) {
+                    console.error(`Erro ao buscar depth ${symbol}:`, error);
+                    return { bids: [], asks: [] };
                 }
-                
-                // 2. Busca OHLC
-                const closes = await this.fetchOHLC(coinId, 90);
-                if (!closes || closes.length < 30) {
-                    console.warn(`Dados insuficientes para ${coinId}`);
-                    return false;
-                }
-                
-                // 3. Calcula indicadores
-                AppState.technicalData[coinId] = TechnicalIndicators.calculateAllIndicators(closes);
-                
-                // 4. Calcula score
-                const score = HolderScoring.calculateScore(coinId);
-                AppState.coinData[coinId].holderScore = score;
-                
-                // 5. Calcula assimetria
-                AppState.coinData[coinId].asymmetry = HolderScoring.calculateAsymmetry(coinId);
-                
-                return true;
             },
-
-            /**
-             * Processa todos os tokens com limite de concorrência
-             */
-            processAllTokens: async function() {
-                const tokens = AppState.favoriteTokens;
-                AppState.isLoading = true;
-                
-                // Limite de requests concorrentes
-                const batchSize = MAX_CONCURRENT_REQUESTS;
-                for (let i = 0; i < tokens.length; i += batchSize) {
-                    const batch = tokens.slice(i, i + batchSize);
-                    await Promise.all(batch.map(token => this.processToken(token)));
-                    
-                    // Atualiza UI progressivamente
-                    UI.updateTables();
-                }
-                
-                AppState.isLoading = false;
-                UI.updateLastUpdate();
-            }
-        };
-
-        // ============================================================================
-        // INTERFACE DO USUÁRIO (UI)
-        // ============================================================================
-        const UI = {
-            /**
-             * Renderiza tabela do Top 10
-             */
-            renderTop10: function() {
-                const tbody = document.getElementById('top10-table-body');
+            
+            // UI Methods
+            renderRanking() {
+                const tbody = document.getElementById('holder-ranking');
                 if (!tbody) return;
                 
-                // Ordena tokens por score
-                const sortedTokens = [...AppState.favoriteTokens]
-                    .filter(id => AppState.coinData[id])
-                    .sort((a, b) => {
-                        const scoreA = AppState.coinData[a]?.holderScore || 0;
-                        const scoreB = AppState.coinData[b]?.holderScore || 0;
-                        return scoreB - scoreA;
-                    })
-                    .slice(0, 10);
+                // Ordenar tokens por score
+                const sortedTokens = this.state.tokens
+                    .map(symbol => ({
+                        symbol,
+                        data: this.state.marketData[symbol],
+                        score: this.state.holderScores[symbol]?.score || 0
+                    }))
+                    .filter(item => item.data)
+                    .sort((a, b) => b.score - a.score);
                 
-                tbody.innerHTML = '';
-                
-                sortedTokens.forEach((coinId, index) => {
-                    const coin = AppState.coinData[coinId];
-                    if (!coin) return;
+                tbody.innerHTML = sortedTokens.map((item, index) => {
+                    const data = item.data;
+                    const score = item.score;
+                    const recommendation = this.getRecommendation(score);
                     
-                    const score = coin.holderScore || 0;
-                    const asymmetry = coin.asymmetry || { ratio: 0, classification: 'low' };
-                    
-                    const row = document.createElement('tr');
-                    row.className = `table-row-${score > 70 ? 'high' : score < 40 ? 'low' : 'mid'} hover:bg-dark-800/50`;
-                    
-                    row.innerHTML = `
-                        <td class="p-2 text-center text-gray-500 font-bold">${index + 1}</td>
-                        <td class="p-2">
-                            <div class="flex items-center gap-2">
-                                <img src="${coin.image}" alt="${coin.name}" class="w-6 h-6 rounded-full">
-                                <div>
-                                    <div class="font-bold text-white">${coin.symbol.toUpperCase()}</div>
-                                    <div class="text-[10px] text-gray-500">${coin.name}</div>
+                    return `
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="p-4 font-bold text-gray-400">${index + 1}</td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold" 
+                                         style="background: ${recommendation.color}">
+                                        ${score}
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-white">${item.symbol.replace('USDT', '')}</div>
+                                        <div class="text-xs text-gray-500">${item.symbol}</div>
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td class="p-2 text-right font-mono text-white">$${coin.current_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
-                        <td class="p-2 text-right">
-                            <div class="flex flex-col items-end">
-                                <div class="font-bold ${score > 70 ? 'text-green-400' : score < 40 ? 'text-red-400' : 'text-blue-400'}">${score}</div>
-                                <div class="score-bar w-12 mt-1">
-                                    <div class="score-fill ${score > 70 ? 'bg-green-500' : score < 40 ? 'bg-red-500' : 'bg-blue-500'}" style="width: ${score}%"></div>
+                            </td>
+                            <td class="p-4 text-right font-mono text-white">
+                                $${parseFloat(data.lastPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}
+                            </td>
+                            <td class="p-4 text-center">
+                                <div class="inline-flex items-center gap-2">
+                                    <div class="text-lg font-bold" style="color: ${recommendation.color}">
+                                        ${score}
+                                    </div>
+                                    <div class="text-xs px-2 py-1 rounded" style="background: ${recommendation.color}20; color: ${recommendation.color}">
+                                        ${recommendation.action}
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td class="p-2 text-center">
-                            <div class="asymmetry-badge asymmetry-${asymmetry.classification}" title="Assimetria ${asymmetry.ratio}:1">
-                                ${asymmetry.ratio.toFixed(1)}
-                            </div>
-                        </td>
+                            </td>
+                            <td class="p-4 text-center">
+                                <div class="inline-flex items-center gap-1">
+                                    <span class="font-mono">${this.calculateRSI(data) || '--'}</span>
+                                    <i class="fa-solid ${this.calculateRSI(data) < 30 ? 'fa-arrow-down text-green-400' : 
+                                                          this.calculateRSI(data) > 70 ? 'fa-arrow-up text-red-400' : 
+                                                          'fa-minus text-gray-400'}"></i>
+                                </div>
+                            </td>
+                            <td class="p-4 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="text-sm font-mono">${(parseFloat(data.volume) / parseFloat(data.quoteVolume) * 100).toFixed(1)}%</div>
+                                    <div class="volume-bar" style="width: 60px"></div>
+                                </div>
+                            </td>
+                            <td class="p-4 text-center">
+                                <span class="font-mono ${parseFloat(data.priceChangePercent) < 0 ? 'text-red-400' : 'text-green-400'}">
+                                    ${data.priceChangePercent}%
+                                </span>
+                            </td>
+                            <td class="p-4 text-center">
+                                <div class="text-sm font-mono">
+                                    ${this.formatMarketCap(parseFloat(data.quoteVolume))}
+                                </div>
+                            </td>
+                            <td class="p-4 text-center">
+                                <div class="inline-flex items-center gap-2">
+                                    <i class="fa-solid ${recommendation.icon}" style="color: ${recommendation.color}"></i>
+                                    <span class="text-sm" style="color: ${recommendation.color}">
+                                        ${recommendation.action}
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="p-4 text-right">
+                                <button onclick="HolderUI.showAssetDetail('${item.symbol}')" 
+                                        class="px-3 py-1 bg-brand-600 hover:bg-brand-500 rounded-lg text-sm text-white transition-colors">
+                                    <i class="fa-solid fa-chart-line mr-1"></i>Detalhes
+                                </button>
+                            </td>
+                        </tr>
                     `;
-                    
-                    tbody.appendChild(row);
-                });
+                }).join('');
             },
-
-            /**
-             * Renderiza tabela de outras moedas
-             */
-            renderOtherCoins: function() {
-                const tbody = document.getElementById('other-table-body');
-                const countEl = document.getElementById('other-count');
-                if (!tbody || !countEl) return;
-                
-                // Ordena tokens por score (excluindo top 10)
-                const allTokens = [...AppState.favoriteTokens]
-                    .filter(id => AppState.coinData[id])
-                    .sort((a, b) => {
-                        const scoreA = AppState.coinData[a]?.holderScore || 0;
-                        const scoreB = AppState.coinData[b]?.holderScore || 0;
-                        return scoreB - scoreA;
-                    });
-                
-                const otherTokens = allTokens.slice(10);
-                countEl.textContent = otherTokens.length;
-                
-                tbody.innerHTML = '';
-                
-                otherTokens.forEach(coinId => {
-                    const coin = AppState.coinData[coinId];
-                    if (!coin) return;
-                    
-                    const score = coin.holderScore || 0;
-                    const tech = AppState.technicalData[coinId] || { rsi: 50 };
-                    
-                    const row = document.createElement('tr');
-                    row.className = `table-row-${score > 70 ? 'high' : score < 40 ? 'low' : 'mid'} hover:bg-dark-800/50`;
-                    
-                    row.innerHTML = `
-                        <td class="p-2">
-                            <div class="flex items-center gap-2">
-                                <img src="${coin.image}" alt="${coin.name}" class="w-5 h-5 rounded-full">
-                                <div class="font-bold text-white">${coin.symbol.toUpperCase()}</div>
-                            </div>
-                        </td>
-                        <td class="p-2 text-right font-mono text-white">$${coin.current_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: coin.current_price < 1 ? 6 : 2 })}</td>
-                        <td class="p-2 text-right font-mono text-gray-400">
-                            ${this.formatMarketCap(coin.market_cap)}
-                        </td>
-                        <td class="p-2 text-right">
-                            <div class="font-bold ${score > 70 ? 'text-green-400' : score < 40 ? 'text-red-400' : 'text-blue-400'}">${score}</div>
-                        </td>
-                        <td class="p-2 text-center font-mono ${tech.rsi < 30 ? 'text-green-400' : tech.rsi > 70 ? 'text-red-400' : 'text-white'}">
-                            ${tech.rsi ? tech.rsi.toFixed(0) : '--'}
-                        </td>
-                    `;
-                    
-                    tbody.appendChild(row);
-                });
-            },
-
-            /**
-             * Atualiza ambas as tabelas
-             */
-            updateTables: function() {
-                this.renderTop10();
-                this.renderOtherCoins();
-                this.renderCards();
-            },
-
-            /**
-             * Renderiza cards detalhados
-             */
-            renderCards: function() {
-                const grid = document.getElementById('cards-grid');
+            
+            renderAssetCards() {
+                const grid = document.getElementById('assets-grid');
                 if (!grid) return;
                 
-                grid.innerHTML = '';
+                // Ordenar por score
+                const sortedTokens = this.state.tokens
+                    .map(symbol => ({
+                        symbol,
+                        data: this.state.marketData[symbol],
+                        score: this.state.holderScores[symbol]?.score || 0
+                    }))
+                    .filter(item => item.data)
+                    .sort((a, b) => b.score - a.score);
                 
-                AppState.favoriteTokens.forEach(coinId => {
-                    const coin = AppState.coinData[coinId];
-                    const tech = AppState.technicalData[coinId];
-                    if (!coin || !tech) return;
+                grid.innerHTML = sortedTokens.map((item, index) => {
+                    const template = document.getElementById('asset-card-template').content.cloneNode(true);
+                    const card = template.querySelector('.asset-card');
                     
-                    const card = document.createElement('div');
-                    card.className = 'glass rounded-lg p-3 border border-gray-800 animate-slide-in';
+                    // Preencher dados
+                    card.querySelector('.asset-symbol').textContent = item.symbol.replace('USDT', '');
+                    card.querySelector('.asset-price').textContent = 
+                        `$${parseFloat(item.data.lastPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}`;
                     
-                    const score = coin.holderScore || 0;
-                    const asymmetry = coin.asymmetry || { ratio: 0, classification: 'low' };
+                    const change = parseFloat(item.data.priceChangePercent);
+                    const changeElement = card.querySelector('.asset-change');
+                    changeElement.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+                    changeElement.className = `text-sm ${change >= 0 ? 'text-green-400' : 'text-red-400'}`;
                     
-                    card.innerHTML = `
-                        <div class="flex justify-between items-start mb-2">
-                            <div class="flex items-center gap-2">
-                                <img src="${coin.image}" alt="${coin.name}" class="w-8 h-8 rounded-full">
-                                <div>
-                                    <div class="font-bold text-white">${coin.symbol.toUpperCase()}</div>
-                                    <div class="text-[10px] text-gray-500">${coin.name}</div>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="font-mono text-white">$${coin.current_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</div>
-                                <div class="text-[10px] ${coin.ath_change_percentage > 50 ? 'text-green-400' : 'text-yellow-400'}">
-                                    ${coin.ath_change_percentage ? coin.ath_change_percentage.toFixed(1) + '% do ATH' : ''}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-2 mt-3 text-[10px]">
-                            <div class="text-center p-1 bg-dark-800 rounded">
-                                <div class="text-gray-500">Score</div>
-                                <div class="font-bold ${score > 70 ? 'text-green-400' : score < 40 ? 'text-red-400' : 'text-blue-400'}">${score}</div>
-                            </div>
-                            <div class="text-center p-1 bg-dark-800 rounded">
-                                <div class="text-gray-500">Assimetria</div>
-                                <div class="font-bold ${asymmetry.ratio > 3 ? 'text-green-400' : asymmetry.ratio > 2 ? 'text-yellow-400' : 'text-red-400'}">${asymmetry.ratio.toFixed(1)}:1</div>
-                            </div>
-                            <div class="text-center p-1 bg-dark-800 rounded">
-                                <div class="text-gray-500">RSI</div>
-                                <div class="font-bold ${tech.rsi < 30 ? 'text-green-400' : tech.rsi > 70 ? 'text-red-400' : 'text-white'}">${tech.rsi.toFixed(0)}</div>
-                            </div>
-                            <div class="text-center p-1 bg-dark-800 rounded">
-                                <div class="text-gray-500">Vol</div>
-                                <div class="font-bold">${tech.volatility.toFixed(1)}%</div>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-3 text-[10px] space-y-1">
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Market Cap:</span>
-                                <span class="text-white">${this.formatMarketCap(coin.market_cap)}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Volume 24h:</span>
-                                <span class="text-white">${this.formatMarketCap(coin.total_volume)}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Upside:</span>
-                                <span class="text-green-400">${asymmetry.upside.toFixed(1)}%</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Downside:</span>
-                                <span class="text-red-400">${asymmetry.downside.toFixed(1)}%</span>
-                            </div>
-                        </div>
-                    `;
+                    // Score
+                    const scoreElement = card.querySelector('.holder-score-badge');
+                    scoreElement.textContent = item.score;
+                    const recommendation = this.getRecommendation(item.score);
+                    scoreElement.style.background = recommendation.color;
                     
-                    grid.appendChild(card);
-                });
+                    // RSI
+                    card.querySelector('.asset-rsi').textContent = this.calculateRSI(item.data) || '--';
+                    
+                    // Market Cap
+                    card.querySelector('.asset-market-cap').textContent = 
+                        this.formatMarketCap(parseFloat(item.data.quoteVolume));
+                    
+                    // Event listeners
+                    card.addEventListener('click', () => HolderUI.showAssetDetail(item.symbol));
+                    
+                    return card.outerHTML;
+                }).join('');
             },
-
-            /**
-             * Formata market cap para K/M/B
-             */
-            formatMarketCap: function(value) {
-                if (!value) return '$--';
-                if (value >= 1e9) return '$' + (value / 1e9).toFixed(2) + 'B';
-                if (value >= 1e6) return '$' + (value / 1e6).toFixed(2) + 'M';
-                if (value >= 1e3) return '$' + (value / 1e3).toFixed(2) + 'K';
-                return '$' + value.toFixed(2);
+            
+            renderDashboardMetrics() {
+                // Atualizar métricas do dashboard
+                const totalAssets = document.getElementById('total-assets');
+                const avgScore = document.getElementById('avg-score');
+                
+                if (totalAssets) totalAssets.textContent = this.state.tokens.length;
+                
+                if (avgScore) {
+                    const scores = Object.values(this.state.holderScores)
+                        .map(s => s.score)
+                        .filter(s => s > 0);
+                    
+                    const average = scores.length > 0 ? 
+                        (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '0.0';
+                    
+                    avgScore.textContent = average;
+                    
+                    // Colorir baseado no score
+                    if (parseFloat(average) >= 70) avgScore.className = 'text-lg font-bold text-green-400';
+                    else if (parseFloat(average) >= 50) avgScore.className = 'text-lg font-bold text-yellow-400';
+                    else avgScore.className = 'text-lg font-bold text-red-400';
+                }
             },
-
-            /**
-             * Atualiza timestamp da última atualização
-             */
-            updateLastUpdate: function() {
-                const el = document.getElementById('last-update');
-                if (el) {
+            
+            // Utilitários
+            formatMarketCap(value) {
+                if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
+                if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+                if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+                return `$${value.toLocaleString()}`;
+            },
+            
+            calculateRSI(data) {
+                // Implementação simplificada do RSI
+                // Em produção, implementar cálculo real baseado em dados históricos
+                const change = parseFloat(data.priceChangePercent);
+                if (change < -20) return 25; // Muito oversold
+                if (change < -10) return 35; // Oversold
+                if (change < 10) return 50; // Neutro
+                if (change < 20) return 65; // Overbought
+                return 75; // Muito overbought
+            },
+            
+            updateLastUpdate() {
+                const element = document.getElementById('last-update');
+                if (element) {
                     const now = new Date();
-                    el.textContent = now.toLocaleTimeString('pt-BR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit',
-                        second: '2-digit'
-                    });
+                    element.textContent = now.toLocaleTimeString();
                 }
             },
-
-            /**
-             * Mostra tooltip educacional
-             */
-            showTooltip: function(metric, element) {
-                const tooltip = document.getElementById('metric-tooltip');
-                if (!tooltip) return;
-                
-                const tooltips = {
-                    score: {
-                        title: "Holder Score",
-                        content: "Pontuação de 0-100 que avalia oportunidades de investimento de longo prazo. Combina fundamentos, valuation, momentum e risco.",
-                        tip: "Score > 70: Excelente oportunidade. Score < 40: Evitar ou considerar venda."
-                    },
-                    asymmetry: {
-                        title: "Assimetria Risco/Recompensa",
-                        content: "Razão entre potencial de alta (upside) e risco de queda (downside). Valores > 3:1 indicam boas oportunidades.",
-                        tip: "Busque assimetrias altas (>3:1) em tokens com fundamentos sólidos."
-                    },
-                    rsi: {
-                        title: "Relative Strength Index",
-                        content: "Indicador de momentum que identifica condições de sobrecompra (>70) e sobrevenda (<30).",
-                        tip: "RSI < 30 pode indicar oportunidade de compra. RSI > 70 sugere cautela."
-                    },
-                    volatility: {
-                        title: "Volatilidade Anualizada",
-                        content: "Mede a variação dos preços. Alta volatilidade = maior risco, maior potencial retorno.",
-                        tip: "Holders podem tolerar mais volatilidade em ativos com alta assimetria."
-                    }
-                };
-                
-                const data = tooltips[metric] || tooltips.score;
-                
-                tooltip.innerHTML = `
-                    <h4>${data.title}</h4>
-                    <p>${data.content}</p>
-                    <span class="tip-label">Dica Holder</span>
-                    <p>${data.tip}</p>
-                `;
-                
-                const rect = element.getBoundingClientRect();
-                tooltip.style.left = `${rect.left}px`;
-                tooltip.style.top = `${rect.bottom + 5}px`;
-                tooltip.classList.add('show');
-                
-                // Remove tooltip após 5 segundos
-                setTimeout(() => {
-                    tooltip.classList.remove('show');
-                }, 5000);
-            }
-        };
-
-        // ============================================================================
-        // GERENCIAMENTO DE TOKENS
-        // ============================================================================
-        const TokenManager = {
-            /**
-             * Adiciona token a partir da busca
-             */
-            addFromSearch: async function() {
-                const input = document.getElementById('searchToken');
-                const query = input.value.trim().toLowerCase();
-                
-                if (!query) return;
-                
+            
+            setupAutoRefresh() {
+                setInterval(async () => {
+                    console.log('🔄 Atualizando dados...');
+                    await this.loadMarketData();
+                    await this.calculateHolderScores();
+                    this.renderRanking();
+                    this.renderAssetCards();
+                    this.renderDashboardMetrics();
+                    this.updateLastUpdate();
+                }, this.config.refreshInterval);
+            },
+            
+            setupWebSocket() {
+                // Implementar WebSocket para atualizações em tempo real
                 try {
-                    // Busca lista de moedas da CoinGecko
-                    const response = await fetch(`${COINGECKO_API}/coins/list`);
-                    const allCoins = await response.json();
+                    const ws = new WebSocket('wss://stream.binance.com:9443/ws/!ticker@arr');
                     
-                    // Encontra a moeda (por símbolo ou nome)
-                    const coin = allCoins.find(c => 
-                        c.symbol.toLowerCase() === query || 
-                        c.id.toLowerCase() === query ||
-                        c.name.toLowerCase().includes(query)
-                    );
+                    ws.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        this.processWebSocketData(data);
+                    };
                     
-                    if (coin) {
-                        if (!AppState.favoriteTokens.includes(coin.id)) {
-                            AppState.favoriteTokens.push(coin.id);
-                            this.saveFavorites();
-                            
-                            // Processa o novo token
-                            await DataPipeline.processToken(coin.id);
-                            UI.updateTables();
-                            
-                            input.value = '';
-                            alert(`${coin.name} adicionado aos favoritos!`);
-                        } else {
-                            alert('Este token já está na lista!');
-                        }
-                    } else {
-                        alert('Token não encontrado. Use símbolo (ex: btc) ou ID (ex: bitcoin)');
-                    }
+                    ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                    };
+                    
+                    this.state.wsConnection = ws;
                 } catch (error) {
-                    console.error('Erro ao buscar token:', error);
-                    alert('Erro ao buscar token. Tente novamente.');
+                    console.error('Erro ao conectar WebSocket:', error);
                 }
             },
-
-            /**
-             * Remove token da lista
-             */
-            removeToken: function(coinId) {
-                AppState.favoriteTokens = AppState.favoriteTokens.filter(id => id !== coinId);
-                this.saveFavorites();
-                
-                // Remove dados do estado
-                delete AppState.coinData[coinId];
-                delete AppState.technicalData[coinId];
-                
-                UI.updateTables();
+            
+            processWebSocketData(data) {
+                // Processar atualizações em tempo real
+                data.forEach(ticker => {
+                    const symbol = ticker.s;
+                    if (this.state.tokens.includes(symbol)) {
+                        // Atualizar dados em tempo real
+                        if (this.state.marketData[symbol]) {
+                            this.state.marketData[symbol].lastPrice = ticker.c;
+                            this.state.marketData[symbol].priceChangePercent = ticker.P;
+                            this.state.marketData[symbol].volume = ticker.v;
+                            
+                            // Atualizar UI
+                            this.updateAssetUI(symbol);
+                        }
+                    }
+                });
             },
-
-            /**
-             * Salva lista de favoritos no localStorage
-             */
-            saveFavorites: function() {
-                localStorage.setItem('holder_favorites', JSON.stringify(AppState.favoriteTokens));
+            
+            updateAssetUI(symbol) {
+                // Atualizar elementos da UI para um símbolo específico
+                const priceElements = document.querySelectorAll(`[data-symbol="${symbol}"] .asset-price`);
+                priceElements.forEach(el => {
+                    const data = this.state.marketData[symbol];
+                    if (data) {
+                        el.textContent = `$${parseFloat(data.lastPrice).toLocaleString('en-US', { 
+                            minimumFractionDigits: 2, 
+                            maximumFractionDigits: 8 
+                        })}`;
+                    }
+                });
+            },
+            
+            setupEventListeners() {
+                // Search
+                const searchInput = document.getElementById('search-assets');
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        const term = e.target.value.toUpperCase();
+                        document.querySelectorAll('.asset-card').forEach(card => {
+                            const symbol = card.dataset.symbol || '';
+                            card.style.display = symbol.includes(term) ? 'block' : 'none';
+                        });
+                    });
+                }
+                
+                // Refresh button
+                const refreshBtn = document.getElementById('refreshData');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', async () => {
+                        refreshBtn.classList.add('animate-spin');
+                        await this.loadMarketData();
+                        await this.calculateHolderScores();
+                        this.renderRanking();
+                        this.renderAssetCards();
+                        setTimeout(() => refreshBtn.classList.remove('animate-spin'), 500);
+                    });
+                }
+            },
+            
+            // Funções placeholder para cálculos futuros
+            async calculateMarketCapScore(symbol) { return 50; }
+            async calculateTokenomicsScore(symbol) { return 50; }
+            async calculateDevActivityScore(symbol) { return 50; }
+            calculateHolderConviction(symbol) { return 50; }
+            async calculateSocialSentiment(symbol) { return 50; }
+            async getFearGreedIndex() { return 50; }
+            calculateVolatilityScore(marketData) { return 50; }
+            calculateDrawdownScore(marketData) { return 50; }
+            calculateBTCcorrelation(symbol, marketData) { return 50; }
+            calculateFibonacciScore(marketData) { return 50; }
+        };
+        
+        // UI Controller
+        const HolderUI = {
+            showAssetDetail(symbol) {
+                // Implementar modal de detalhes do ativo
+                console.log('Mostrar detalhes:', symbol);
+                // Aqui você implementaria um modal completo com gráficos e análises detalhadas
+            },
+            
+            openSettings() {
+                // Implementar modal de configurações
+                console.log('Abrir configurações');
             }
         };
-
-        // ============================================================================
-        // INICIALIZAÇÃO DO APLICATIVO
-        // ============================================================================
-        const App = {
-            /**
-             * Inicializa o aplicativo
-             */
-            init: async function() {
-                console.log('🚀 CryptoPanel Holder iniciando...');
+        
+        // Export Controller
+        const HolderExport = {
+            generateReport() {
+                // Gerar relatório Excel
+                const data = [];
                 
-                // 1. Configura event listeners
-                this.setupEventListeners();
-                
-                // 2. Carrega dados iniciais
-                if (AppState.favoriteTokens.length > 0) {
-                    await DataPipeline.processAllTokens();
-                }
-                
-                // 3. Configura atualização automática
-                if (AppState.settings.autoRefresh) {
-                    setInterval(async () => {
-                        await DataPipeline.processAllTokens();
-                    }, AppState.settings.refreshInterval);
-                }
-                
-                console.log('✅ CryptoPanel Holder pronto!');
-            },
-
-            /**
-             * Configura todos os event listeners
-             */
-            setupEventListeners: function() {
-                // Botão de refresh
-                document.getElementById('refreshData').addEventListener('click', async () => {
-                    await DataPipeline.processAllTokens();
-                });
-                
-                // Filtros
-                document.querySelectorAll('.filter-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active-filter'));
-                        this.classList.add('active-filter');
-                        AppState.activeFilter = this.dataset.filter;
-                        UI.updateTables();
-                    });
-                });
-                
-                // Busca
-                document.getElementById('searchToken').addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        TokenManager.addFromSearch();
+                for (const symbol of HolderSystem.state.tokens) {
+                    const marketData = HolderSystem.state.marketData[symbol];
+                    const score = HolderSystem.state.holderScores[symbol];
+                    
+                    if (marketData && score) {
+                        data.push({
+                            Symbol: symbol,
+                            Price: parseFloat(marketData.lastPrice),
+                            '24h Change': parseFloat(marketData.priceChangePercent),
+                            'Holder Score': score.score,
+                            Recommendation: score.recommendation.action,
+                            RSI: HolderSystem.calculateRSI(marketData),
+                            Volume: parseFloat(marketData.volume),
+                            'Quote Volume': parseFloat(marketData.quoteVolume),
+                            Timestamp: new Date().toLocaleString()
+                        });
                     }
-                });
-                
-                // Tooltips educacionais
-                document.addEventListener('mouseover', (e) => {
-                    if (e.target.classList.contains('metric-hint')) {
-                        const metric = e.target.dataset.metric;
-                        UI.showTooltip(metric, e.target);
-                    }
-                });
-            },
-
-            // Exporta funções públicas
-            Portfolio: {
-                openModal: function() {
-                    alert('Modal de portfólio em desenvolvimento...');
                 }
-            },
-            Token: TokenManager
+                
+                // Criar worksheet
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Holder Report");
+                
+                // Gerar arquivo
+                XLSX.writeFile(wb, `CryptoPanel_HOLDER_${new Date().toISOString().split('T')[0]}.xlsx`);
+            }
         };
-
-        // ============================================================================
-        // INICIALIZAÇÃO AO CARREGAR A PÁGINA
-        // ============================================================================
+        
+        // Inicializar sistema quando o DOM estiver pronto
         document.addEventListener('DOMContentLoaded', () => {
-            App.init();
+            HolderSystem.init();
         });
     </script>
 </body>
